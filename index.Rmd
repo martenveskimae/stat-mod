@@ -1,0 +1,300 @@
+---
+title: "Statistiline modelleerimine 2017"
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,
+                      warning = F,
+                      message = F,
+                      comment = NA,
+                      fig.align="center")
+Sys.setlocale("LC_ALL", "UTF-8")
+```
+
+# Sissejuhatus R keelde
+## Paketid
+
+- tidyverse
+- ggthemes
+
+## Taustaks
+
+R on statistikale ja andmete visualiseerimisele suunatud vabavaraline programmeerimiskeel. R loodi 90ndate alguses S-i baasile ning on tasapisi muutunud üheks enimkasutatavaks statistika tarkvaraks.
+
+![R Passes SPSS in Scholarly Use, Stata Growing Rapidly](images/software.png)
+<a href="http://r4stats.com/2014/08/20/r-passes-spss-in-scholarly-use-stata-growing-rapidly/">R Passes SPSS in Scholarly Use, Stata Growing Rapidly (2014)</a>
+
+R-il on olulisi eeliseid mitmete teiste statistikatarkvarade ees:
+
+- R on eeskätt programmeerimiskeel, mis tähendab, et see võimaldab luua uusi funktsioone vastavalt eesseisvale probleemile;
+- R on vabavaraline ning kasvava populaarsusega, mis tähendab, et uute meetodid jõuavad R-i kasutajateni enne teisi;
+- R jookseb kõikidel levinud OS-idel ning on tasuta kättesaadav;
+- R ühildub mitmete teiste keeltega, mis teeb selle laiemalt kasutatavaks (näiteks käesolev **markdown-i** dokument);
+- R pakub visualiseerimisel tõenäoliselt parimat tasakaalu lihtsuse ja esteetilisuse vahel;
+- R on tõenäoliselt üks parimaid vahendeid statistika tegemiseks ka aastakümne pärast, mis tähendab, et selle õppimiseks kulutatud aeg pole raisatud.
+
+Sellega seoses on sel ka miinuseid:
+
+- nõuab uue keele õppimist, mis võib olla alguses keeruline;
+- aeg ajalt esineb uuemates pakettides vigu, mis tähendab, et tuleb olla tähelepanelik;
+- seab kõrgemad nõuded meetodite tundmisele.
+
+### Intervjuud:
+- <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja</a>
+
+## Installeerimiseks
+
+R-i kasutamiseks piisab vaid R-i "mootori" installerimisest, kuid mugavam on kasutada graafilist kasutajaliidest, näiteks R-Studiot.
+<a href="https://www.r-project.org">R</a></br>
+<a href="https://www.rstudio.com/products/rstudio/">R studio (GUI)</a>
+
+Kuna R on vabavaraline tarkvara, siis on mitmete R-i funktsioonide kasutamiseks vajalik need esmalt alla laadida. See toimub R-i keskkonnas `install.packages(...)` abil (nt `install.packages("tidyverse")`), mispuhul **pakett** on funktsioonide kogum. Vajaminevate pakettide peale hetkel mõtlema ei pea, need tulevad jooksvalt praktikumide käigus.
+
+## Töö põhimõtted
+### Objektid
+
+R-i põhiline töövahend on **objekt**, mis võib sisaldada nii funktsioone kui andmeid. Objekte saab ise luua `<-` või `=` märkide abil (`<-` on "vanakooli" meetod ja mõned soovitavad kasutada seda. Üldjuhul piisab ka `=` kasutamisest).
+
+```{r}
+x = 5
+x
+```
+
+Kui soovime siduda rohkem andmeid ühe objektiga, on võimalik luua **vektor** (jada / ühedimensionaalne maatriks).
+```{r}
+x <- c(5, 12.3, 3:10)
+x
+```
+
+Objekt võib saada sisendi ka teisest objektidest. Samuti võib teha objektidega tehteid.
+```{r}
+y = x - 5
+y
+```
+
+Objektiks võib olla ka funktsioon.
+```{r}
+lahuta.viis = function(x){
+  tmp = x - 5
+  return(tmp)
+}
+
+y = lahuta.viis(x)
+y
+```
+
+### Põhilised andmetüübid
+
+Numbrid:
+```{r}
+x = 1
+str(x)
+```
+
+Tähemärgid (numbrid muudetakse tähemärkideks):
+```{r}
+x = c("a", "b", 1, 2)
+str(x)
+```
+
+Faktorid (identsed elemendid saavad sama koodi):
+```{r}
+x = as.factor(c("a", "b", "1", "2", "a", "2"))
+str(x)
+```
+
+### Andmetabelid
+
+Seni vaadatud jadad on olnud kõik ühedimensioonilised, ent andmed võivad olla ka mitmedimensionaalsed. Enimlevinud mitmedimensioonilised formaadid on **andmetabelid** ja **maatriksid**, millest peamiselt keskendume esimesele. Maatriks on kahedimensionaalne vektor, mis on justkui mitu vektorit kokku liidetuna, kuid kõik vektorid peavad olema sama liiki andmetega.
+
+```{r}
+matrix(1:9, nrow=3, byrow = T)
+matrix(letters[1:9], nrow=3, byrow = T)
+```
+
+Mitu samapikkust vektorit saab liita kokku üheks ka andmetabeliks ehk data frameiks (`data.frame(...)`). Data frame'i erinevus seisneb selles, et veerud võivad sisaldada eritüüpi andmeid (nt üks veerg on numbriline, teine sisaldab faktoreid jne).
+```{r}
+x = c(1:4)
+y = c("Audi", "DAF", "Ford", "GAZ")
+z = x-5
+
+df = data.frame(tunnus.1 = x,
+                tunnus.2 = y,
+                tunnus.3 = z)
+df
+```
+
+Andmetabelite tunnuseid (ehk veerge) saab kätte ka vektorina kasutades `$` märki:
+```{r}
+df$tunnus.2
+```
+
+Võimalik on kasutada ka indeksi (järjekorra) numbrit kandilistes sulgudes. Andmetabelite puhul on esimene number rea number ning koma järel veeru number. Vektori puhul piisab vaid rea numbrist.
+```{r}
+df[,2]
+df["tunnus.2"]
+df[1,]["tunnus.2"]
+df[1,2]
+df$tunnus.2[2]
+```
+
+### Listid
+
+Kõiki erinevaid objekte saab koondada listidesse (`list(...)`). List on hea koondamaks erinevate pikkustega või erineva iseloomuga, kuid samateemalisi andmeid. Tihti võib liste kohata erinevate funktsioonide väljundites.
+
+```{r}
+ls = list(df)
+ls[[2]] = c(1:10)
+ls[[3]] = y[2:4]
+
+ls
+```
+
+### Funktsioonid objektide kohta
+
+Kõikide objektide puhul:
+
+- `str(...)` - objekti struktuur
+- `typeof(...)` - storage mode
+- `is.numeric(...)` - kas on...
+- `is.character(...)`
+- `is.factor(...)`
+- `is.function(...)`
+- `is.logical(...)`
+
+...
+
+Vektori puhul:
+
+- `length(...)` - vektori pikkus
+
+Data frame'i puhul:
+
+- `dim(...)` - data frame'i dimensioonid (ridu, veerge)
+- `nrow(...)` - ridade arv
+- `ncol(...)` - veergude arv
+
+Formaadi muutmiseks:
+
+- `as.vector(...)` - vektor
+- `as.matrix(...)` - maatriks
+- `as.data.frame(...)` - data frame
+- `as.list(...)` - list
+
+## Andmestike laadimine
+
+R suudab lugeda sisse enamikke levinud andmeformaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
+
+### Internetist
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv", sep=";", dec = ",")
+```
+
+Andmestiku vaatamiseks võib küsida tervet andmestikku, aga võib ka küsida esimesi või viimaseid ridu. Selleks saab kasutada nii indeksi kui ka eraldi funktsioone `head(...)` ja `tail(...)`.
+
+```{r}
+df[1:6, 1:4]
+
+head(df[,1:4])
+tail(df[,1:4])
+```
+
+Et näha, millised tunnused andmestikus on, võib küsida tunnuste pealkirju `colnames(...)` funktsiooiga.
+
+```{r}
+colnames(df)
+```
+
+### Kohalikult kettalt
+
+Kohalikult kettalt andmestike laadimiseks tuleb märkida ära andmestiku asukoht kettal. Selle lihtsustamiseks on otstarbekas märkida ära töökeskonna asukoht.
+
+Olemasoleva asukoha nägemiseks on funktsioon `getwd()`.
+```{r}
+getwd()
+```
+
+Kui tahta seda muuta, saab kasutada `setwd(...)` funktsiooni, kus argumendiks on soovitud uus asukoht.
+
+## Andmetega tutvumine
+
+Kokkuvõtvaid andmed nii andmetabelite kui teiste andmeformaatide kohta näeb funktsiooniga `summary(...)`.
+```{r}
+summary(df)
+```
+
+Faktortunnuste puhul võib pakkuda huvi, millised erinevad kategooriad on andmestikus esindatud. Näiteks võime vaadata, millised erakonnad andmestikus leiduvad.
+```{r}
+levels(df$party)
+```
+
+Kui soovida täpsemat ülevaadet, näiteks, mitu andmepukti on iga erakonnaga seotud, siis selleks on hea kasutada paketti **tidyverse**. Tidyverse hõlmab endas mitmeid erinevaid, kuid omavahel ühilduvaid pakette. Üks neist, **dplyr**, pakub mitmeid funktsioone andmete mugavaks töötlemiseks (eeskätt filtreerimine, grupeerimine, tunnuste muutmine jne). Teine oluline dplyri eelis on mitmete funktsioonide jadana sisestamine (ing.k *pipe*), mis muudab R-i koodi kergemini jälgitavaks. Pipeide kasutamiseks tuleb kahe funktsiooni vahel kasutada `%>%` sümboleid. Enne illustratsiooni juurde liikumist on vajalik tidyverse aktiveerida, milleks on funktsioon `library(...)`.
+
+```{r}
+library(tidyverse)
+```
+
+Pipei näide võib olla järgnev:
+```{r}
+c(1:10) %>% lahuta.viis()
+```
+
+Järgnevalt tutvume, mitu rida on seotud üksikute erakondadega. 
+```{r}
+df %>%
+  group_by(party) %>%
+  summarize(n = n())
+```
+
+### Kirjeldavad joonised
+
+Kõige kiirem viis andmete visualiseerimiseks on kasutada funktsioone `plot(...)` või `hist(...)`, kus tuleb määratleda telje/telgede väärtused.
+
+```{r}
+plot(df$support, df$year)
+```
+
+```{r}
+hist(df$support)
+```
+
+Paraku ei ole antud funktsioonid väga mugavad tidyverse'is kasutamiseks ning kujunduse muutmine on piiratud võimalustega. Kõige enim levinud viis andmete visualiseerimiseks R-i keskkonnas on paketiga **ggplot2**, mis on samuti tidyverse'i osa.
+
+```{r}
+df %>%
+  filter(party=="ref") %>%
+  ggplot() +
+  geom_point(aes(year, support))
+```
+
+```{r}
+df %>%
+  filter(party=="ref") %>%
+  ggplot() +
+  geom_histogram(aes(support))
+```
+
+Kujunduse kiireks muutmiseks on erinevad valmislahendused, mis on kättesaadavad **ggthemes** paketiga.
+```{r}
+library(ggthemes)
+
+df %>%
+  filter(party=="ref") %>%
+  ggplot() +
+  geom_point(aes(year, support)) +
+  theme_bw()
+```
+
+# Keskmised ja hajuvus
+# Keskmiste võrdlus
+# Korrelatsioon
+# Lineaarne regressioon
+# Logistiline regressioon
