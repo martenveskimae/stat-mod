@@ -21,6 +21,10 @@ Sys.setlocale("LC_ALL", "UTF-8")
 ```
 
 # Sissejuhatus R keelde
+
+## Teaser
+- <a href="https://martenveskimae.github.io/stat-mod/rahalised_annetused.html">Rahalised annetused erakondadele</a>
+
 ## Paketid
 
 - tidyverse
