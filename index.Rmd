@@ -2,10 +2,11 @@
 title: "Statistiline modelleerimine 2017"
 date: "`r format(Sys.time(), '%d-%m-%Y')`"
 output:
-  html_document:
+  prettydoc::html_pretty:
+    theme: cayman
     toc: true
-    toc_float: true
-    code_folding: show
+    # toc_float: true
+    # code_folding: show
     number_sections: true
 ---
 
@@ -52,15 +53,16 @@ Sellega seoses on sel ka miinuseid:
 ## Installeerimiseks
 
 R-i kasutamiseks piisab vaid R-i "mootori" installerimisest, kuid mugavam on kasutada graafilist kasutajaliidest, näiteks R-Studiot.
-<a href="https://www.r-project.org">R</a></br>
-<a href="https://www.rstudio.com/products/rstudio/">R studio (GUI)</a>
+
+- <a href="https://www.r-project.org">R</a></br>
+- <a href="https://www.rstudio.com/products/rstudio/">R studio (GUI)</a>
 
 Kuna R on vabavaraline tarkvara, siis on mitmete R-i funktsioonide kasutamiseks vajalik need esmalt alla laadida. See toimub R-i keskkonnas `install.packages(...)` abil (nt `install.packages("tidyverse")`), mispuhul **pakett** on funktsioonide kogum. Vajaminevate pakettide peale hetkel mõtlema ei pea, need tulevad jooksvalt praktikumide käigus.
 
-## Töö põhimõtted
+## Tööpõhimõtted
 ### Objektid
 
-R-i põhiline töövahend on **objekt**, mis võib sisaldada nii funktsioone kui andmeid. Objekte saab ise luua `<-` või `=` märkide abil (`<-` on "vanakooli" meetod ja mõned soovitavad kasutada seda. Üldjuhul piisab ka `=` kasutamisest).
+R-i põhiline töövahend on **objekt**, mis võib sisaldada nii funktsioone kui andmeid. Objekte saab ise luua `<-` või `=` märkide abil (`<-` on mõnevõrra kindlam meetod ja mõned soovitavad kasutada seda. Üldjuhul, sh selle aine raames, piisab ka `=` kasutamisest).
 
 ```{r}
 x = 5
@@ -190,12 +192,13 @@ Formaadi muutmiseks:
 
 ## Andmestike laadimine
 
-R suudab lugeda sisse enamikke levinud andmeformaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
+R suudab lugeda sisse enamikke levinud andmeformaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (`sep`; koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (`dec`; punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
 
 ### Internetist
 
 ```{r}
-df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv", sep=";", dec = ",")
+url = "https://martenveskimae.github.io/stat-mod/party_dataset.csv"
+df = read.csv(url, sep=";", dec = ",")
 ```
 
 Andmestiku vaatamiseks võib küsida tervet andmestikku, aga võib ka küsida esimesi või viimaseid ridu. Selleks saab kasutada nii indeksi kui ka eraldi funktsioone `head(...)` ja `tail(...)`.
