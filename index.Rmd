@@ -1,7 +1,7 @@
 ---
 title: "Statistiline modelleerimine 2017"
 date: "`r format(Sys.time(), '%d-%m-%Y')`"
-author: "Märten Veskimäe, Mihkel Solvak"
+author: "Märten Veskimäe & Mihkel Solvak"
 output:
   prettydoc::html_pretty:
     theme: cayman
@@ -27,8 +27,10 @@ Sys.setlocale("LC_ALL", "UTF-8")
 
 ## Paketid
 
-- tidyverse
-- ggthemes
+```{r}
+library(tidyverse)
+library(ggthemes)
+```
 
 ## Taustaks
 
@@ -117,6 +119,19 @@ x = as.factor(c("a", "b", "1", "2", "a", "2"))
 str(x)
 ```
 
+Kuupäevad:
+```{r}
+x = as.Date("2017-09-01")
+str(x)
+```
+
+Kuupäevade puhul on oluline jälgida formaati. Vaikimisi on selleks **yyyy-mm-dd**, kuid kui sisseloetavad andmed on teises formaadis, tuleks see `as.Date(...)` käskluses täpsustada `format` või `origin` argumentidega. Formaatidest pikemalt: <a href="http://www.statmethods.net/input/dates.html">Date Values</a>.
+
+```{r}
+as.Date("01-09-2017", format="%d-%m-%Y")
+as.Date(17410, origin="1970-01-01")
+```
+
 ### Andmetabelid
 
 Seni vaadatud jadad on olnud kõik ühedimensioonilised, ent andmed võivad olla ka mitmedimensionaalsed. Enimlevinud mitmedimensioonilised formaadid on **andmetabelid** ja **maatriksid**, millest peamiselt keskendume esimesele. Maatriks on kahedimensionaalne vektor, mis on justkui mitu vektorit kokku liidetuna, kuid kõik vektorid peavad olema sama liiki andmetega.
@@ -192,12 +207,13 @@ Formaadi muutmiseks:
 
 - `as.vector(...)` - vektor
 - `as.matrix(...)` - maatriks
+- `as.Date(...)` - kuupäev
 - `as.data.frame(...)` - data frame
 - `as.list(...)` - list
 
 ## Andmestike laadimine
 
-R suudab lugeda sisse enamikke levinud andmeformaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (`sep`; koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (`dec`; punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
+R suudab lugeda sisse enamikke levinud andmefailide formaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (`sep`; koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (`dec`; punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
 
 ### Internetist
 
@@ -244,18 +260,18 @@ Faktortunnuste puhul võib pakkuda huvi, millised erinevad kategooriad on andmes
 levels(df$party)
 ```
 
-Kui soovida täpsemat ülevaadet, näiteks, mitu andmepukti on iga erakonnaga seotud, siis selleks on hea kasutada paketti **tidyverse**. Tidyverse hõlmab endas mitmeid erinevaid, kuid omavahel ühilduvaid pakette. Üks neist, **dplyr**, pakub mitmeid funktsioone andmete mugavaks töötlemiseks (eeskätt filtreerimine, grupeerimine, tunnuste muutmine jne). Teine oluline dplyri eelis on mitmete funktsioonide jadana sisestamine (ing.k *pipe*), mis muudab R-i koodi kergemini jälgitavaks. Pipeide kasutamiseks tuleb kahe funktsiooni vahel kasutada `%>%` sümboleid. Enne illustratsiooni juurde liikumist on vajalik tidyverse aktiveerida, milleks on funktsioon `library(...)`.
+Kui soovida täpsemat ülevaadet, näiteks, mitu andmepukti on iga erakonnaga seotud, siis selleks on hea kasutada paketti **tidyverse**. Tidyverse hõlmab endas mitmeid erinevaid, kuid omavahel ühilduvaid pakette. Üks neist, **dplyr**, pakub mitmeid funktsioone andmete mugavaks töötlemiseks (eeskätt filtreerimine, grupeerimine, tunnuste muutmine jne). Teine oluline eelis tuleneb paketist **magrittr**, mis võimaldab käsklusi sisestada jadana (ing.k *pipe*). See kiirendab tööprotsessi ja muudab R-i koodi kergemini jälgitavaks. Pipe'ide kasutamiseks tuleb kahe funktsiooni vahel lisada `%>%` sümbolid. Enne näite juurde liikumist on vajalik tidyverse aktiveerida, milleks on funktsioon `library(...)`.
 
 ```{r}
 library(tidyverse)
 ```
 
-Pipei näide võib olla järgnev:
+Pipe'i näide võib olla järgnev:
 ```{r}
 c(1:10) %>% lahuta.viis()
 ```
 
-Järgnevalt tutvume, mitu rida on seotud üksikute erakondadega. 
+Järgnevalt tutvume, mitu rida on seotud üksikute erakondadega (sagedustabel). 
 ```{r}
 df %>%
   group_by(party) %>%
@@ -267,7 +283,7 @@ df %>%
 Kõige kiirem viis andmete visualiseerimiseks on kasutada funktsioone `plot(...)` või `hist(...)`, kus tuleb määratleda telje/telgede väärtused.
 
 ```{r}
-plot(df$support, df$year)
+plot(df$year, df$support)
 ```
 
 ```{r}
@@ -301,7 +317,143 @@ df %>%
   theme_bw()
 ```
 
-# Keskmised ja hajuvus
+# Jaotus ja keskmised
+
+## Paketid
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(moments)
+```
+
+## Andmestik
+
+```{r}
+url = "https://martenveskimae.github.io/stat-mod/party_dataset.csv"
+df = read.csv(url, sep=";", dec = ",")
+```
+
+
+## Histogramm
+Vaatame jaotuste järsakust ja sümmeetrilisust visuaalselt histogrammi abil. `geom_histogram(...)` annab vaikimisi sagedusjaotuse, kuid on võimalik valida ka protsente või tõenäosustihedust.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_histogram(aes(support, ..count../sum(..count..))) +
+  geom_line(aes(support, ..density../100), stat = "density") +
+  scale_y_continuous(labels=scales::percent) +
+  scale_x_continuous(labels=scales::percent) +
+  labs(y="protsent") +
+  theme_bw()
+```
+
+**ggplot** võimaldab luua eraldi joonised erinevate gruppide jaoks kasutades `facet_wrap(...)` käsklust.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_histogram(aes(support, ..count../sum(..count..))) +
+  geom_line(aes(support, ..density../100), stat = "density") +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  scale_x_continuous(labels=scales::percent) +
+  labs(y="protsent") +
+  theme_bw()
+```
+
+Silmas tuleb pidada, et sel puhul kalkuleerib **ggplot** tulpade laiused ja hulga üle kõikide kuvatud jooniste, mistõttu erinevad need üksikult kuvatud joonistest. Tulpade hulga ja laiuste kontrollimiseks on argumendid `bins` ja `binwidth`, millest esimene määrab tulpade hulga ja teine laiused. Neid käsklusi ei saa korraga kasutada (binwidth kirjutab binsi üle).
+
+```{r}
+df %>%
+  ggplot() +
+  geom_histogram(aes(support, ..count../sum(..count..)), bins=10, binwidth=0.03) +
+  geom_line(aes(support, ..density../100), stat = "density") +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  scale_x_continuous(labels=scales::percent) +
+  labs(y="protsent") +
+  theme_bw()
+```
+
+## Järsakuse- ja assümmeetriakordaja
+
+Vaatame järsakust ja sümmeetrilisust ka numbriliselt nn järsakuse- ja assümmeetriakordaja abil. Seda võimaldab pakett **moments**, kust leiame käsklused `skewness(...)` ja `kurtosis(...)`. Kuna soovime rakendada antud käsklusi kõigi gruppide (erakondade) peale eraldi, siis tuleks andmestik esmalt filtreerida grupeerimistunnuse alusel (party) ning alles seejärel rakendada antud käsklusi. Kõige lihtsam (kuid mitte kõige efektiivsem) viis selleks on **for loop** meetod:
+
+```{r}
+parties = as.character(unique(df$party))
+s = c()
+k = c()
+for(i in 1:length(parties)){
+  s[length(s)+1] = skewness(df$support[df$party==parties[i]], na.rm=T)
+  k[length(k)+1] = kurtosis(df$support[df$party==parties[i]], na.rm=T)
+}
+names(s) = parties
+names(k) = parties
+s;k
+```
+
+
+Sama tulemusega saab aga lihtsamalt kätte kasutades `apply(...)` käsklust, mis jäljendab eelneva meetodi loogikat.
+```{r}
+s = sapply(as.character(unique(df$party)), function(x) skewness(df$support[df$party==x], na.rm=T))
+k = sapply(as.character(unique(df$party)), function(x) kurtosis(df$support[df$party==x], na.rm=T))
+s;k
+```
+
+## Keskmine, mediaan ja mood
+
+Keskmise ja mediaani leidmine on R-is lihtne `mean(...)` ja `median(...)` käskluste abil:
+```{r}
+mean = sapply(as.character(unique(df$party)), function(x) mean(df$support[df$party==x], na.rm=T))
+median = sapply(as.character(unique(df$party)), function(x) median(df$support[df$party==x], na.rm=T))
+mean;median
+```
+
+Moodi, ehk kõige sagedamini esineva väärtuse leidmiseks eraldi käsklus puudub, ent seda on lihtne leida sagedustabelist.
+```{r}
+df %>%
+  group_by(party, support) %>%
+  summarise(n = n()) %>%
+  na.omit() %>%
+  group_by(party) %>%
+  summarise(mode = support[n==max(n)][1])
+```
+
+**dplyri** saab kasutada ka keskmise ja mediaani leidmiseks.
+```{r}
+df %>%
+  group_by(party) %>%
+  summarise(mean = mean(support,na.rm=T),
+            median = median(support,na.rm=T))
+```
+
+Viimaks võib kanda leitud väärtused histogrammile, et neid visuaalselt kõrvutada. Kuigi **ggplot** oskab lisada joonistele funktsioone, ei suuda ta praeguses versioonis kuvada eraldi funktsioone eraldi gruppidele (nt kasutades `facet_wrap(~party)`). Otstarbekas on sellisel juhul teha uus andmetabel keskmiste väärtustega.
+
+```{r}
+keskmised = df %>%
+  group_by(party, support) %>%
+  summarise(n = n()) %>%
+  na.omit() %>%
+  group_by(party) %>%
+  summarise(mean = mean(support),
+            median = median(support),
+            mode = support[n==max(n)][1])
+
+df %>%
+  ggplot() +
+  geom_histogram(aes(support)) +
+  geom_line(aes(support, ..density..), stat = "density") +
+  facet_wrap(~party) +
+  geom_vline(data=keskmised,aes(xintercept=mean, color="Keskmine")) +
+  geom_vline(data=keskmised,aes(xintercept=median, color="Mediaan")) +
+  geom_vline(data=keskmised,aes(xintercept=mode, color="Mood")) +
+  scale_x_continuous(labels=scales::percent) +
+  theme_bw()
+```
+
+# Usaldusvahemikud
 # Keskmiste võrdlus
 # Korrelatsioon
 # Lineaarne regressioon
