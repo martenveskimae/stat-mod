@@ -1,29 +1,62 @@
+---
+title: 'Rahalised annetused: ref'
+date: "`r format(Sys.time(), '%d-%m-%Y')`"
+author: "Märten Veskimäe"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,
+                      warning = F,
+                      message = F,
+                      comment = NA,
+                      fig.align="center")
+Sys.setlocale("LC_ALL", "UTF-8")
+```
+
+###Vajaminevad paketid
+```{r paketid}
 library(tidyverse)
 library(ggthemes)
 library(htmltab)
 library(lubridate)
 library(zoo)
-Sys.setlocale("LC_ALL", "UTF-8")
+library(stargazer)
+```
 
+###Funktsioon vanuse arvutamiseks
+```{r vanus}
 calc.age = function(dob, age.day = today(), units = "years", floor = T) {
   age = interval(dob, age.day) / duration(num = 1, units = units)
   if (floor) return(as.integer(floor(age)))
   return(age)
 }
+```
 
-# 55 ~ "ref"
-# 67 ~ "kesk"
-# 57 ~ "sde"
-# 56 ~ "irl"
-# 1381 ~ "vaba"
-# 68 ~ "ekre"
+###Andmete "kraapimise" parameetrid
 
+Erakonnad:
+
+- ref - 55
+- kesk - 67
+- sde - 57
+- irl - 56
+- vaba - 1381
+- ekre - 68
+
+```{r}
 urls = expand.grid(period = seq(2013, format(Sys.time(), "%Y"), 1),
                    q = 1:4,
                    code = 55)
+```
 
+###Andmestiku allalaadimine ja töötlemine
+```{r, eval = FALSE}
 df = plyr::ldply(1:nrow(urls), function(i){
-  print(i)
   url = paste0("http://www.erjk.ee/et/aruanded/tulude-ja-laekumiste-paringud?period=",
                urls$period[i],"&party=",urls$code[i],"&person=all&group=all&quarter=q",urls$q[i])
   
@@ -49,10 +82,22 @@ df = plyr::ldply(1:nrow(urls), function(i){
   
     return(tmp)
   })
+```
 
-# save(df, file="df.Rda")
-# load("df.Rda")
+```{r, echo=FALSE}
+load("df.Rda")
+df = df %>% mutate(donations = `Rahaline annetus`,
+                   membership.fees = Liikmemaks) %>%
+  select(name, bday, age, date, party, membership.fees, donations)
+```
 
+
+```{r}
+head(df)
+```
+
+###Valimistsükli tunnuste loomine
+```{r}
 cycles = data.frame(date = seq.Date(as.Date("2011-03-01"), as.Date("2018-01-01"), by = "month"),
                     np = rep(1:48, 3)[1:83]/48,
                     local = rep(1:48, 3)[18:100]/48)
@@ -61,18 +106,34 @@ lm.data = df %>%
   group_by(date) %>%
   summarise(donations = sum(donations)) %>%
   left_join(., cycles, by="date")
+```
 
+###Algandmed
+```{r}
 lm.data %>%
   ggplot() +
   geom_line(aes(date, donations)) +
   geom_point(aes(date, donations), size=.8) +
   theme_bw()
+```
 
+###Regressioonivõrrand rahaliste annetuste prognoosimiseks
+```{r}
 lm.donations = lm(donations ~ np + poly(np,2) + local + poly(local,2), lm.data)
+```
 
+```{r, results="asis"}
+stargazer(lm.donations, type="html")
+```
+
+###Tühja andmetabeli tegemine prognoosiks
+```{r}
 prediction.data = data.frame(date = seq.Date(as.Date("2013-01-01"), as.Date("2018-01-01"), by = "quarter")) %>%
   left_join(., cycles, by="date")
+```
 
+###Prognoosimine ja visualiseerimine
+```{r}
 prediction.data %>%
   mutate(yhat = predict(lm.donations, .)) %>%
   left_join(., lm.data) %>%
@@ -82,3 +143,5 @@ prediction.data %>%
   geom_line(aes(date, yhat), color="steelblue") +
   geom_point(aes(date, yhat), size=.8, color="steelblue") +
   theme_bw()
+```
+
