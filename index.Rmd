@@ -278,6 +278,8 @@ df %>%
   summarize(n = n())
 ```
 
+**dplyr** kohta leiab rohkem informatsiooni siit: <a href="http://genomicsclass.github.io/book/pages/dplyr_tutorial.html">dplyr tutorial</a>
+
 ### Kirjeldavad joonised
 
 Kõige kiirem viis andmete visualiseerimiseks on kasutada funktsioone `plot(...)` või `hist(...)`, kus tuleb määratleda telje/telgede väärtused.
