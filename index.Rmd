@@ -54,8 +54,11 @@ Sellega seoses on sel ka miinuseid:
 - aeg ajalt esineb uuemates pakettides vigu, mis tähendab, et tuleb olla tähelepanelik;
 - seab kõrgemad nõuded meetodite tundmisele.
 
-### Intervjuud:
-- <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja</a>
+### Lingid
+- <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
+- <a href="http://ggplot2.tidyverse.org">Elegant Data Visualisations Using the Grammar of Graphics • ggplot2</a>
+- <a href="http://www.statmethods.net/input/dates.html">Date Values</a>
+- <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja (intervjuu)</a>
 
 ## Installeerimiseks
 
@@ -278,7 +281,7 @@ df %>%
   summarize(n = n())
 ```
 
-**dplyr** kohta leiab rohkem informatsiooni siit: <a href="http://genomicsclass.github.io/book/pages/dplyr_tutorial.html">dplyr tutorial</a>
+**dplyr** kohta leiab rohkem informatsiooni siit: <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
 
 ### Kirjeldavad joonised
 
@@ -318,6 +321,8 @@ df %>%
   geom_point(aes(year, support)) +
   theme_bw()
 ```
+
+**ggplot2** kohta leiab rohkem informatsiooni siit: <a href="http://ggplot2.tidyverse.org">Elegant Data Visualisations Using the Grammar of Graphics</a>
 
 # Jaotus ja keskmised
 
