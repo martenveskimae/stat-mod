@@ -514,6 +514,7 @@ Eelnevalt toodud protsentiilid saab graafida **boxploti** abil, mis kuvab veel l
 df %>%
   ggplot() +
   geom_boxplot(aes(party,support)) +
+  scale_y_continuous(labels=scales::percent) +
   theme_bw()
 ```
 
