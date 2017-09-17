@@ -20,6 +20,22 @@ knitr::opts_chunk$set(echo = T,
 Sys.setlocale("LC_ALL", "UTF-8")
 ```
 
+<style>
+.tip{
+  background-color:rgba(204,229,255,0.5);
+  text-align:left;
+  color:rgb(0,102,204);
+  vertical-align: middle;
+  padding:40px 0; 
+  margin-top:10px;
+  border-radius: 5px;
+  border: 1px solid rgba(204,229,255,0.7);
+}
+.tip a{
+  color:rgb(0,51,102);
+}
+</style>
+
 # Sissejuhatus R keelde
 
 ## Teaser
@@ -55,19 +71,39 @@ Sellega seoses on sel ka miinuseid:
 - seab kõrgemad nõuded meetodite tundmisele.
 
 ### Lingid
+
+Nädal 1:
+
 - <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
 - <a href="http://ggplot2.tidyverse.org">Elegant Data Visualisations Using the Grammar of Graphics • ggplot2</a>
 - <a href="http://www.statmethods.net/input/dates.html">Date Values</a>
+
+Nädal 2:
+
+- <a href="https://www.datacamp.com/community/tutorials/r-tutorial-apply-family#gs.oydmaoU">Tutorial on the R Apply Family</a>
+- <a href="http://seananderson.ca/2013/10/19/reshape.html">An Introduction to reshape2</a>
+
+Huvitavat:
+
 - <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja (intervjuu)</a>
 
 ## Installeerimiseks
 
-R-i kasutamiseks piisab vaid R-i "mootori" installerimisest, kuid mugavam on kasutada graafilist kasutajaliidest, näiteks R-Studiot.
+R-i kasutamiseks piisab vaid R-i "mootori" installeerimisest, kuid mugavam on kasutada graafilist kasutajaliidest, näiteks R-Studiot.
 
 - <a href="https://www.r-project.org">R</a></br>
 - <a href="https://www.rstudio.com/products/rstudio/">R studio (GUI)</a>
 
 Kuna R on vabavaraline tarkvara, siis on mitmete R-i funktsioonide kasutamiseks vajalik need esmalt alla laadida. See toimub R-i keskkonnas `install.packages(...)` abil (nt `install.packages("tidyverse")`), mispuhul **pakett** on funktsioonide kogum. Vajaminevate pakettide peale hetkel mõtlema ei pea, need tulevad jooksvalt praktikumide käigus.
+
+## Kui satute hätta..
+
+R-i pakettidel on enamasti küllatki hästi lahti kirjutatud **help** sektsioon, mis on leitav help tabi alt (enamasti paremal all nurgas). Help tabi otsingusse saab kirjutada otsitud funktsiooni nime, misjärel ta kuvab ta funktsiooni kirjelduse ning argumentide väärtused. Enamasti on lisatud mõned näited funktsiooni kasutamisvõimalustest. Võimalik on veel:
+
+- kirjutada konsooli ?funktsiooni nimi (nt `?read.csv()`) või `help(...)`, kuhu läheb argumendiks funktsiooni nimi;
+- selekteerida funktsioon ja vajutada klaviatuuril F1.
+
+Lisaks R-is olemasolevale kirjeldusele on mitmed paketid avaldatud teadusajakirjades, eeskätt ajakirjas <a href="https://www.jstatsoft.org/index">Journal of Statistical Software</a>. Samuti on enamus tüüp-probleemid lahendatud <a href="https://stackoverflow.com">Stack Overflow</a> lehel. Mõlemal juhul peaks google viima sobiva lahenduseni.
 
 ## Tööpõhimõtted
 ### Objektid
@@ -128,7 +164,7 @@ x = as.Date("2017-09-01")
 str(x)
 ```
 
-Kuupäevade puhul on oluline jälgida formaati. Vaikimisi on selleks **yyyy-mm-dd**, kuid kui sisseloetavad andmed on teises formaadis, tuleks see `as.Date(...)` käskluses täpsustada `format` või `origin` argumentidega. Formaatidest pikemalt: <a href="http://www.statmethods.net/input/dates.html">Date Values</a>.
+Kuupäevade puhul on oluline jälgida formaati. Vaikimisi on selleks **yyyy-mm-dd**, kuid kui sisse loetavad andmed on teises formaadis, tuleks see `as.Date(...)` käskluses täpsustada `format` või `origin` argumentidega. Formaatidest pikemalt: <a href="http://www.statmethods.net/input/dates.html">Date Values</a>.
 
 ```{r}
 as.Date("01-09-2017", format="%d-%m-%Y")
@@ -137,7 +173,7 @@ as.Date(17410, origin="1970-01-01")
 
 ### Andmetabelid
 
-Seni vaadatud jadad on olnud kõik ühedimensioonilised, ent andmed võivad olla ka mitmedimensionaalsed. Enimlevinud mitmedimensioonilised formaadid on **andmetabelid** ja **maatriksid**, millest peamiselt keskendume esimesele. Maatriks on kahedimensionaalne vektor, mis on justkui mitu vektorit kokku liidetuna, kuid kõik vektorid peavad olema sama liiki andmetega.
+Seni vaadatud jadad on olnud kõik ühedimensionaalsed, ent andmed võivad olla ka mitmedimensionaalsed. Enimlevinud mitmedimensionaalsed formaadid on **andmetabelid** ja **maatriksid**, millest peamiselt keskendume esimesele. Maatriks on kahedimensionaalne vektor, mis on justkui mitu vektorit kokku liidetuna, kuid kõik vektorid peavad olema sama liiki andmetega.
 
 ```{r}
 matrix(1:9, nrow=3, byrow = T)
@@ -216,13 +252,13 @@ Formaadi muutmiseks:
 
 ## Andmestike laadimine
 
-R suudab lugeda sisse enamikke levinud andmefailide formaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisselugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (`sep`; koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (`dec`; punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
+R suudab lugeda sisse enamikke levinud andmefailide formaate, kuid kõige sagedasemalt kasutatakse .csv (*comma separated values*). Andmestike sisse lugemiseks on erinevaid funktsioone, kuid .csv-de puhul piisab `read.csv(...)`. `read.csv(...)` võimaldab muu hulgas määratleda, kuidas on eraldatud erinevad veerud (`sep`; koma, semikooloni vm abil) ja mida kasutatakse komakohtade eraldamiseks (`dec`; punkt, koma vm). See võib olla oluline, kuna erinevad programmid erinevatel OS-idel võivad kasutada erinevaid standardeid.
 
 ### Internetist
 
 ```{r}
 url = "https://martenveskimae.github.io/stat-mod/party_dataset.csv"
-df = read.csv(url, sep=";", dec = ",")
+df = read.csv(url)
 ```
 
 Andmestiku vaatamiseks võib küsida tervet andmestikku, aga võib ka küsida esimesi või viimaseid ridu. Selleks saab kasutada nii indeksi kui ka eraldi funktsioone `head(...)` ja `tail(...)`.
@@ -263,7 +299,7 @@ Faktortunnuste puhul võib pakkuda huvi, millised erinevad kategooriad on andmes
 levels(df$party)
 ```
 
-Kui soovida täpsemat ülevaadet, näiteks, mitu andmepukti on iga erakonnaga seotud, siis selleks on hea kasutada paketti **tidyverse**. Tidyverse hõlmab endas mitmeid erinevaid, kuid omavahel ühilduvaid pakette. Üks neist, **dplyr**, pakub mitmeid funktsioone andmete mugavaks töötlemiseks (eeskätt filtreerimine, grupeerimine, tunnuste muutmine jne). Teine oluline eelis tuleneb paketist **magrittr**, mis võimaldab käsklusi sisestada jadana (ing.k *pipe*). See kiirendab tööprotsessi ja muudab R-i koodi kergemini jälgitavaks. Pipe'ide kasutamiseks tuleb kahe funktsiooni vahel lisada `%>%` sümbolid. Enne näite juurde liikumist on vajalik tidyverse aktiveerida, milleks on funktsioon `library(...)`.
+Kui soovida täpsemat ülevaadet, näiteks, mitu andmepunkti on iga erakonnaga seotud, siis selleks on hea kasutada paketti **tidyverse**. Tidyverse hõlmab endas mitmeid erinevaid, kuid omavahel ühilduvaid pakette. Üks neist, **dplyr**, pakub mitmeid funktsioone andmete mugavaks töötlemiseks (eeskätt filtreerimine, grupeerimine, tunnuste muutmine jne). Teine oluline eelis tuleneb paketist **magrittr**, mis võimaldab käsklusi sisestada jadana (ing.k *pipe*). See kiirendab tööprotsessi ja muudab R-i koodi kergemini jälgitavaks. Pipe'ide kasutamiseks tuleb kahe funktsiooni vahel lisada `%>%` sümbolid. Enne näite juurde liikumist on vajalik tidyverse aktiveerida, milleks on funktsioon `library(...)`.
 
 ```{r}
 library(tidyverse)
@@ -331,16 +367,15 @@ df %>%
 ```{r}
 library(tidyverse)
 library(ggthemes)
-library(moments)
+library(e1071)
+library(reshape2)
 ```
 
 ## Andmestik
 
 ```{r}
-url = "https://martenveskimae.github.io/stat-mod/party_dataset.csv"
-df = read.csv(url, sep=";", dec = ",")
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
 ```
-
 
 ## Histogramm
 Vaatame jaotuste järsakust ja sümmeetrilisust visuaalselt histogrammi abil. `geom_histogram(...)` annab vaikimisi sagedusjaotuse, kuid on võimalik valida ka protsente või tõenäosustihedust.
@@ -386,7 +421,17 @@ df %>%
 
 ## Järsakuse- ja assümmeetriakordaja
 
-Vaatame järsakust ja sümmeetrilisust ka numbriliselt nn järsakuse- ja assümmeetriakordaja abil. Seda võimaldab pakett **moments**, kust leiame käsklused `skewness(...)` ja `kurtosis(...)`. Kuna soovime rakendada antud käsklusi kõigi gruppide (erakondade) peale eraldi, siis tuleks andmestik esmalt filtreerida grupeerimistunnuse alusel (party) ning alles seejärel rakendada antud käsklusi. Kõige lihtsam (kuid mitte kõige efektiivsem) viis selleks on **for loop** meetod:
+Vaatame järsakust ja sümmeetrilisust ka numbriliselt nn järsakuse- ja assümmeetriakordaja abil. Seda võimaldab pakett **e1071**, kust leiame käsklused `skewness(...)` ja `kurtosis(...)` (rakendatavad valemid on leitavad helpist). Kuna soovime rakendada antud käsklusi kõigi gruppide (erakondade) jaoks eraldi, siis tuleks andmestik esmalt filtreerida grupeerimistunnuse alusel (party) ning alles seejärel rakendada antud käsklusi.
+
+```{r}
+df %>%
+  group_by(party) %>%
+  summarise(skewness = skewness(support, na.rm=T),
+            kurtosis = kurtosis(support, na.rm=T))
+```
+
+<div class="tip">
+Alternatiiv **dplyr** meetodile oleks **for loop**. Loopimine on küll võrdlemisi lihtne, kuid vahel mitte kõige efektiivsem viis:
 
 ```{r}
 parties = as.character(unique(df$party))
@@ -401,22 +446,16 @@ names(k) = parties
 s;k
 ```
 
+Sama tulemuse saab efektiivsemalt kasutades `apply(...)` käsklust (antud juhul `sapply(...)`. Rohkem applyst: <a href="https://www.datacamp.com/community/tutorials/r-tutorial-apply-family#gs.oydmaoU">Tutorial on the R Apply Family</a>), mis jäljendab eelneva meetodi loogikat.
 
-Sama tulemusega saab aga lihtsamalt kätte kasutades `apply(...)` käsklust, mis jäljendab eelneva meetodi loogikat.
 ```{r}
 s = sapply(as.character(unique(df$party)), function(x) skewness(df$support[df$party==x], na.rm=T))
 k = sapply(as.character(unique(df$party)), function(x) kurtosis(df$support[df$party==x], na.rm=T))
 s;k
 ```
+</div>
 
 ## Keskmine, mediaan ja mood
-
-Keskmise ja mediaani leidmine on R-is lihtne `mean(...)` ja `median(...)` käskluste abil:
-```{r}
-mean = sapply(as.character(unique(df$party)), function(x) mean(df$support[df$party==x], na.rm=T))
-median = sapply(as.character(unique(df$party)), function(x) median(df$support[df$party==x], na.rm=T))
-mean;median
-```
 
 Moodi, ehk kõige sagedamini esineva väärtuse leidmiseks eraldi käsklus puudub, ent seda on lihtne leida sagedustabelist.
 ```{r}
@@ -436,7 +475,7 @@ df %>%
             median = median(support,na.rm=T))
 ```
 
-Viimaks võib kanda leitud väärtused histogrammile, et neid visuaalselt kõrvutada. Kuigi **ggplot** oskab lisada joonistele funktsioone, ei suuda ta praeguses versioonis kuvada eraldi funktsioone eraldi gruppidele (nt kasutades `facet_wrap(~party)`). Otstarbekas on sellisel juhul teha uus andmetabel keskmiste väärtustega.
+Viimaks võib kanda leitud väärtused histogrammile, et neid visuaalselt kõrvutada. Kuigi **ggplot** oskab lisada joonistele funktsioone, ei suuda ta praeguses versioonis kuvada eraldi funktsioone eraldi gruppidele (nt kasutades `facet_wrap(~party)`). Otstarbekas on sellisel juhul teha uus andmetabel keskmiste väärtustega. Andmetabeli mugavamaks kasutamiseks pöörame tabeli *laiast* formaadist *pikka* formaati, kasutades selleks **reshape2** paketti ja `melt(...)` funktsiooni. Rohkem **reshape2** ja laia/pika formaadi kohta: <a href="http://seananderson.ca/2013/10/19/reshape.html">An Introduction to reshape2</a>.
 
 ```{r}
 keskmised = df %>%
@@ -444,23 +483,214 @@ keskmised = df %>%
   summarise(n = n()) %>%
   na.omit() %>%
   group_by(party) %>%
-  summarise(mean = mean(support),
-            median = median(support),
-            mode = support[n==max(n)][1])
+  summarise(keskmine = mean(support),
+            mediaan = median(support),
+            mood = support[n==max(n)][1]) %>%
+  melt("party",c("keskmine", "mediaan", "mood"),"Keskmised")
 
 df %>%
   ggplot() +
   geom_histogram(aes(support)) +
   geom_line(aes(support, ..density..), stat = "density") +
+  geom_vline(data=keskmised,aes(xintercept=value, linetype=Keskmised, color=Keskmised)) +
   facet_wrap(~party) +
-  geom_vline(data=keskmised,aes(xintercept=mean, color="Keskmine")) +
-  geom_vline(data=keskmised,aes(xintercept=median, color="Mediaan")) +
-  geom_vline(data=keskmised,aes(xintercept=mode, color="Mood")) +
   scale_x_continuous(labels=scales::percent) +
   theme_bw()
 ```
 
+<div class="tip">
+Lisaks mediaanile võivad meid huvitada ka teised **protsentiilid** (mediaan on 0.50 protsentiil), eeskätt .25 ja 0.75 (teisisõnu I ja III kvartiil). Veel võite kohta mõistet **kvartiilide vahe**, mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
+
+```{r}
+sapply(as.character(unique(df$party)), function(x) quantile(df$support[df$party==x],c(.025,.25,.5,.75,.975),na.rm=T))
+```
+Eelnevalt toodud protsentiilid saab graafida **boxploti** abil, mis kuvab veel lisaks erindid (*outliers*).
+
+```{r}
+df %>%
+  ggplot() +
+  geom_boxplot(aes(party,support)) +
+  theme_bw()
+```
+
+</div>
 # Usaldusvahemikud
+
+## Paketid
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(reshape2)
+```
+
+## Andmestik
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+```
+
+## Standardhälve
+
+Eelmisest korrast teame, et keskmine toetusprotsent erakonniti erineb, aga erineb ka kõikumine keskmise ümber. Osade erakondade puhul on keskmine toetus stabiilselt ühe tüüpväärtuse ümber, aga teistel mitte. Selle hindamiseks kasutatakse tüüpiliselt *variatsiooni* ja *standardhälvet*, mis on R-is leitav käsklustega `var(...)` ja `sd(...)`. 
+
+<div class="tip">
+Variatsioon on *eeldatav* erinevus tõelise väärtuse ja keskmise vahel ruudus:
+
+$Var(X) = E[(X-\mu)^2]$
+
+ehk teisisõnu erinevuste keskmine:
+
+$Var(X) = \frac{ \sum(X-\mu)^2}{N-1}$
+
+```{r}
+X = 1:10
+
+var(X)
+sum((X - mean(X))^2) / (length(X)-1)
+```
+
+(Miks on jagaja $N-1$ ja mitte $N$? Vahe tuleneb sellest, kas meil on andmed kogu populatsiooni kohta või valim populatsioonist, mis on alati väiksem kui N!)
+
+Variatsiooni leidmiseks on erinevused võetud ruutu. Et jõuda tagasi algskaala juurde, tuleks variatsioonist võtta ruutjuur, mis ongi standardhälve:
+
+$\sigma=\sqrt{E[(X-\mu)^2]}$
+
+```{r}
+X = 1:10
+
+sqrt(var(X))
+sd(X)
+```
+
+Standardhälvet võib seega mõista kui keskmist erinevust keskmisest.
+</div>
+
+Vaatame erakondade keskmisi ja standardhälvet lähemalt:
+```{r}
+keskmised = df %>%
+  group_by(party) %>%
+  summarise(keskmine = mean(support, na.rm=T),
+            s.ylemine = keskmine + sd(support, na.rm=T),
+            s.alumine = keskmine - sd(support, na.rm=T)) %>%
+  melt("party",c("keskmine", "s.ylemine", "s.alumine"), "Varieeruvus")
+
+df %>%
+  ggplot() +
+  geom_line(aes(as.Date(date), support)) +
+  geom_hline(data=keskmised,aes(yintercept=value, linetype=Varieeruvus, color=Varieeruvus)) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="") +
+  theme_bw()
+```
+
+## Standardviga ja usaldusvahemikud
+
+Millest see kõikumine keskmine ümber tuleneb on meile teada. Erakondade toetus varieerub ajas erinevalt ja meie arvutatud keskmine näitab tüüpväärtust üle aja. Siin on aga veel üks aga! Erakonna igakuised toetusnumbrid on ise sammuti üks statistiline hinnang (enamasti saadud umbes 1000se valimiga küsitlusest)! Milline on erakondade tõeline toetus populatsioonis on kindlaks tehtav vaid kogupopulatsiooni küsitledes ja seda me teha ei saa. Sellest tulenevalt on meie küsitlustulemustes alati mingi viga sees. Mida saame teha, on hinnata toetusprotsendi vahemikku, kus tõeline toetusprotsent tõenäoliselt asetseks.
+
+Teoreetiliselt tähendaks see olukorda, kus võtaksime populatsioonist, kus on tegelikud teotused erakondadele, lõpmatu arv juhuvalimeid ja leiaks nende valimite toetusprotsendid. Enamasti oleks tulemus sarnane tegeliku toetusega (mida me ei tea), samas teatud olukordades oleks tulemus ühele või teisele poole väga mööda. Kui me teeks nendelt juhuvalimitelt toetusprotsentide graafi, tuleks see normaaljaotusega graaf: 95% juhtumitest langeks +/-1.96 z-skoori vahele. Sellest tulenevalt saaksime hinnata, millisesse vahemikku jääb tõeline tulemus (95% tõenäosusega).
+
+Praktikas seda teha ei saa, sest küsitlused on kallid. Küll aga on võimalik tuletada usaldusvahemik kasutades selleks **standardviga**. Standardviga kirjeldab, kui lähedal on valimi keskmine populatsiooni keskmisele, kasutades selleks üldjuhul variatsiooni ja valimi suurust. Standardvea leidmiseks on erinevaid meetodeid, sõltuvalt andmete iseloomust. Antud juhul on tegu proportsioonidega (erakonna toetust väljendatakse protsendina populatsioonist), mispuhul kasutame proportsiooni standardviga:
+
+$SE_p = \sqrt{\frac{p(1-p)}{N}}$
+
+kus:
+
+- p on protsent (antud juhul erakonna toetusprotsent)
+- N valimi suurus (antud juhul 1000)
+
+Usaldusvahemiku leidmiseks tuleb korrutada standardviga soovitud z-skoori väärtusega (nt 95% usaldusvahemiku leidmiseks on see 1.96) ning liita või lahutada erakonna toetusprotsendist:
+
+$p \pm ci_{95} = p \pm 1.96 \cdot SE$
+
+Kuivõrd tegu on küllalt spetsiifilise küsimusega, siis on otstarbekas teha oma funktsioon.
+
+```{r}
+ci.95 = function(p,n=1000,z=1.96){
+  y = p + (z*(sqrt(p*(1-p)/n)))
+  a = p - (z*(sqrt(p*(1-p)/n)))
+  
+  tmp = list(y = y,
+             a = a)
+  return(tmp)
+}
+
+df %>%
+  mutate(ylemine =  ci.95(support)[["y"]],
+         alumine =  ci.95(support)[["a"]]) %>%
+  melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
+  ggplot() +
+  geom_line(aes(as.Date(date), value, color=Toetus)) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="",y="protsent") +
+  theme_bw()
+```
+
+<div class="tip">
+Lihtsamaks lugemiseks võime jooned üle siluda.
+```{r}
+df %>%
+  mutate(ylemine =  ci.95(support)[["y"]],
+         alumine =  ci.95(support)[["a"]]) %>%
+  melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
+  ggplot() +
+  geom_smooth(aes(as.Date(date), value, color=Toetus), se=F, method="lm", formula= y~poly(x, 7), size=.7) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="",y="protsent") +
+  theme_bw()
+```
+</div>
+
+<div class="tip">
+Alternatiivne lähenemine eelnevalt kirjeldatud meetodile oleks simuleerida erakondade toetusprotsente <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">bootstrap</a> meetodil. Bootstrapi idee seisneb olemasolevast valimist juhuslike valimite võtmises ning nende põhjal huvipakkuvate statistikute arvutamises (eeskätt variatsioon ja standardviga).
+
+Kuna antud juhul on tegu proportsioonidega ning me soovime igat üksikut vaatlust eraldi simuleerida, siis võime seda teha mündiviske loogikal. Mündiviske puhul simuleerib R binaarset jaotust, mille keskmine on meie poolt antud ning jaotus on <a href="https://en.wikipedia.org/wiki/Binomial_distribution">binominaalne</a>. Korrates mündiviske katset piisava arvu kordi (antud juhul katsetame 500ga), saame arvutada simulatsiooni standardhälve ja standardvea.
+
+Mündiviske simulatsiooniks kasutame paketti **mosaic** ning funktsioone `do(...)`, `rFlip(...)` ja `confint(...)`. Käesolevas katses: `do(1000)` kordab katset 1000 korda ning `rFlip(party.n,x)` viskab ühes katses münti nii mitu korda, kui palju on erakonnaga seotud vaatlusi, tõenäosusega x. `confint(...)` arvutab simulatsiooni usaldusvahemikud.
+
+```{r, eval=FALSE}
+toetus.sim = function(x,party,ylemineaalumine){
+  require(mosaic)
+  if(is.na(x)) return(NA)
+  party.n = nrow(df[df$party==party & !is.na(df$support),])
+
+  tmp = do(1000) * rflip(party.n,x)
+  ci = confint(tmp$prop)
+  
+  tmp = list(y = ci[["97.5%"]],
+             a = ci[["2.5%"]])
+  if(ylemineaalumine=="y") return(tmp[["y"]])
+  else if(ylemineaalumine=="a") return(tmp[["a"]])
+}
+
+df %>%
+  rowwise() %>%
+  mutate(ylemine = toetus.sim(support,party,"y"),
+         alumine = toetus.sim(support,party,"a")) %>%
+  melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
+  ggplot() +
+  geom_smooth(aes(as.Date(date), value, color=Toetus), se=F, method="lm", formula= y~poly(x, 7), size=.7) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="",y="protsent") +
+  theme_bw()
+```
+
+```{r, echo=FALSE}
+load("sim.Rda")
+sim %>%
+  melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
+  ggplot() +
+  geom_smooth(aes(as.Date(date), value, color=Toetus), se=F, method="lm", formula= y~poly(x, 7), size=.7) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="",y="protsent") +
+  theme_bw()
+```
+
 # Keskmiste võrdlus
 # Korrelatsioon
 # Lineaarne regressioon
