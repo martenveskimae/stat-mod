@@ -504,7 +504,7 @@ df %>%
 ```
 
 <div class="tip">
-Lisaks mediaanile võivad huvipakkuvad olla ka teised **protsentiilid** (mediaan on 50 protsentiil), eeskätt 25 ja 75 (teisisõnu I ja III kvartiil). Veel võib aeg-ajalt kohta mõistet **kvartiilhaare**(*interquartile range - IQR*), mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
+Lisaks mediaanile võivad huvipakkuvad olla ka teised **protsentiilid** (mediaan on 50 protsentiil), eeskätt 25 ja 75 (teisisõnu I ja III kvartiil). Veel võib aeg-ajalt kohta mõistet **kvartiilhaare** (*interquartile range - IQR*), mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
 
 ```{r}
 sapply(as.character(unique(df$party)), function(x) quantile(df$support[df$party==x],c(.025,.25,.5,.75,.975),na.rm=T))
