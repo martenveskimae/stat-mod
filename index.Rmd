@@ -6,6 +6,7 @@ output:
   prettydoc::html_pretty:
     theme: cayman
     toc: true
+    toc_depth: 2
     # toc_float: true
     # code_folding: show
     number_sections: true
@@ -41,7 +42,7 @@ Sys.setlocale("LC_ALL", "UTF-8")
 ## Teaser
 - <a href="https://martenveskimae.github.io/stat-mod/rahalised_annetused.html">Rahalised annetused erakondadele</a>
 
-## Paketid
+### Paketid
 
 ```{r}
 library(tidyverse)
@@ -70,7 +71,7 @@ Sellega seoses on sel ka miinuseid:
 - aeg ajalt esineb uuemates pakettides vigu, mis tähendab, et tuleb olla tähelepanelik;
 - seab kõrgemad nõuded meetodite tundmisele.
 
-### Kasulikud lingid
+## Kasulikud lingid
 
 Nädal 1:
 
@@ -366,7 +367,7 @@ df %>%
 
 # Jaotus ja keskmised
 
-## Paketid
+### Paketid
 
 ```{r}
 library(tidyverse)
@@ -375,7 +376,7 @@ library(e1071)
 library(reshape2)
 ```
 
-## Andmestik
+### Andmestik
 
 ```{r}
 df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
@@ -503,7 +504,7 @@ df %>%
 ```
 
 <div class="tip">
-Lisaks mediaanile võivad huvipakkuvad olla ka teised **protsentiilid** (mediaan on 50 protsentiil), eeskätt 25 ja 75 (teisisõnu I ja III kvartiil). Veel võib aeg-ajalt kohta mõistet **kvartiilide vahe**(*interquartile range - IQR*), mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
+Lisaks mediaanile võivad huvipakkuvad olla ka teised **protsentiilid** (mediaan on 50 protsentiil), eeskätt 25 ja 75 (teisisõnu I ja III kvartiil). Veel võib aeg-ajalt kohta mõistet **kvartiilhaare**(*interquartile range - IQR*), mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
 
 ```{r}
 sapply(as.character(unique(df$party)), function(x) quantile(df$support[df$party==x],c(.025,.25,.5,.75,.975),na.rm=T))
@@ -521,7 +522,7 @@ df %>%
 </div>
 # Usaldusvahemikud
 
-## Paketid
+### Paketid
 
 ```{r}
 library(tidyverse)
@@ -529,7 +530,7 @@ library(ggthemes)
 library(reshape2)
 ```
 
-## Andmestik
+### Andmestik
 
 ```{r}
 df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
