@@ -70,7 +70,7 @@ Sellega seoses on sel ka miinuseid:
 - aeg ajalt esineb uuemates pakettides vigu, mis tähendab, et tuleb olla tähelepanelik;
 - seab kõrgemad nõuded meetodite tundmisele.
 
-### Lingid
+### Kasulikud lingid
 
 Nädal 1:
 
@@ -84,6 +84,7 @@ Nädal 2:
 - <a href="http://seananderson.ca/2013/10/19/reshape.html">An Introduction to reshape2</a>
 
 Nädal 3:
+
 - <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">Bootstrapping</a>
 
 Huvitavat:
