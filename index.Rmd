@@ -100,7 +100,7 @@ R-i kasutamiseks piisab vaid R-i "mootori" installeerimisest, kuid mugavam on ka
 
 Kuna R on vabavaraline tarkvara, siis on mitmete R-i funktsioonide kasutamiseks vajalik need esmalt alla laadida. See toimub R-i keskkonnas `install.packages(...)` abil (nt `install.packages("tidyverse")`), mispuhul **pakett** on funktsioonide kogum. Vajaminevate pakettide peale hetkel mõtlema ei pea, need tulevad jooksvalt praktikumide käigus.
 
-## Kui satute hätta..
+## Kui satud hätta..
 
 R-i pakettidel on enamasti küllatki hästi lahti kirjutatud **help** sektsioon, mis on leitav help tabi alt (enamasti paremal all nurgas). Help tabi otsingusse saab kirjutada otsitud funktsiooni nime, misjärel ta kuvab ta funktsiooni kirjelduse ning argumentide väärtused. Enamasti on lisatud mõned näited funktsiooni kasutamisvõimalustest. Võimalik on veel:
 
@@ -503,7 +503,7 @@ df %>%
 ```
 
 <div class="tip">
-Lisaks mediaanile võivad meid huvitada ka teised **protsentiilid** (mediaan on 0.50 protsentiil), eeskätt .25 ja 0.75 (teisisõnu I ja III kvartiil). Veel võite kohta mõistet **kvartiilide vahe**, mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
+Lisaks mediaanile võib huvipakkuvad olla ka teised **protsentiilid** (mediaan on 50 protsentiil), eeskätt 25 ja 75 (teisisõnu I ja III kvartiil). Veel võib aeg-ajalt kohta mõistet **kvartiilide vahe**(*interquartile range - IQR*), mis tähistab vahemikku I ja III kvartiili vahel. R-is on protsentiilide leidmiseks käsklus `quantile(...)`.
 
 ```{r}
 sapply(as.character(unique(df$party)), function(x) quantile(df$support[df$party==x],c(.025,.25,.5,.75,.975),na.rm=T))
