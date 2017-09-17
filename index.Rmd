@@ -658,7 +658,7 @@ Kuna antud juhul on tegu proportsioonidega ning me soovime igat üksikut vaatlus
 Mündiviske simulatsiooniks kasutame paketti **mosaic** ning funktsioone `do(...)`, `rFlip(...)` ja `confint(...)`. Käesolevas katses: `do(1000)` kordab katset 1000 korda ning `rFlip(party.n,x)` viskab ühes katses münti nii mitu korda, kui palju on erakonnaga seotud vaatlusi, tõenäosusega x. `confint(...)` arvutab simulatsiooni usaldusvahemikud.
 
 ```{r, eval=FALSE}
-toetus.sim = function(x,party,ylemineaalumine){
+toetus.sim = function(x,party,yleminea.alumine){
   require(mosaic)
   if(is.na(x)) return(NA)
   party.n = nrow(df[df$party==party & !is.na(df$support),])
@@ -666,10 +666,8 @@ toetus.sim = function(x,party,ylemineaalumine){
   tmp = do(1000) * rflip(party.n,x)
   ci = confint(tmp$prop)
   
-  tmp = list(y = ci[["97.5%"]],
-             a = ci[["2.5%"]])
-  if(ylemineaalumine=="y") return(tmp[["y"]])
-  else if(ylemineaalumine=="a") return(tmp[["a"]])
+  if(yleminea.alumine=="y") return(ci[["97.5%"]])
+  if(yleminea.alumine=="a") return(ci[["2.5%"]])
 }
 
 df %>%
