@@ -78,6 +78,8 @@ Nädal 1:
 - <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
 - <a href="http://ggplot2.tidyverse.org">Elegant Data Visualisations Using the Grammar of Graphics • ggplot2</a>
 - <a href="http://www.statmethods.net/input/dates.html">Date Values</a>
+- <a href="https://www.tutorialspoint.com/r/r_operators.htm">R - Operators</a>
+- <a href="http://rmarkdown.rstudio.com/lesson-1.html">R Markdown</a>
 
 Nädal 2:
 
@@ -324,7 +326,7 @@ df %>%
 
 **dplyr** kohta leiab rohkem informatsiooni siit: <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
 
-### Kirjeldavad joonised
+## Filtreerimine & joonised 
 
 Kõige kiirem viis andmete visualiseerimiseks on kasutada funktsioone `plot(...)` või `hist(...)`, kus tuleb määratleda telje/telgede väärtused.
 
@@ -351,6 +353,37 @@ df %>%
   ggplot() +
   geom_histogram(aes(support))
 ```
+
+<div class="tip">
+**Võrdlusoperaatorid**
+
+Filtreerimisel või muude võrdluste tegemisel kasutatakse teatud tingmärke, mida nimetatakse võrldusoperaatoriteks. R-is on need järnevad:
+
+Operaator   | Tulemus
+----------- | -----------
+`==`        | Võrdne
+`!=`        | Mittevõrdne
+`>`         | Suurem
+`<`         | Väiksem
+`>=`        | Suurem-võrdne
+`<=`        | Väiksem-võrdne
+`%in%`      | Sisaldab
+
+**Loogilised operaatorid**
+
+Olukordades, kus soovime mitut võrdlust/tingimust kombineerida, tuleb erinevad komponendid siduda omavahel loogiliste operaatoritega:
+
+Operaator   | Tulemus
+----------- | -------------------------------------------------------------------------------------------------------------
+`&`         | Loogiline JA üksikute vektori komponentide kohta (väljund on TRUE/FALSE kõigi vektori komponentide kohta)
+`&&`        | Loogiline JA kõigi vektori komponentide kohta (väljund on ainult üks TRUE/FALSE kogu vektori kohta)
+`|`         | Loogiline VÕI üksikute vektori komponentide kohta (väljund on TRUE/FALSE kõigi vektori komponentide kohta)
+`||`        | Loogiline VÕI kõigi vektori komponentide kohta (väljund on ainult üks TRUE/FALSE kogu vektori kohta)
+`!`         | Loogiline mittesamaväärsus
+
+
+Näiteid: <a href="https://www.tutorialspoint.com/r/r_operators.htm">R - Operators</a>
+</div>
 
 Kujunduse kiireks muutmiseks on erinevad valmislahendused, mis on kättesaadavad **ggthemes** paketiga.
 ```{r}
@@ -696,6 +729,136 @@ sim %>%
 ```
 
 # Keskmiste võrdlus
+
+### Paketid
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+```
+
+### Andmestik
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
+```
+
+## T-test
+
+Vaatame Eesti poliitika sukka ja saabast ehk Reformierakonda ja Keskerakonda eelmisel valimistsükli ajal.
+
+```{r}
+df %>%
+  filter(party %in% c("ref", "kesk"),
+         year>=2011 | year<2015) %>%
+  ggplot() +
+  geom_point(aes(as.Date(date),support)) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="") +
+  theme_bw()
+```
+
+Tekib küsimus, kas Keskerakonna keskmine toetus üldse erineb oluliselt Reformi keskmisest toetusest?
+
+### Ühe valimi t-test
+
+Hindame seda ühe valimi t testiga. Leiame Reformierakonna keskmise toetuse perioodil 2011-2014 ja võrdleme seda keskerakonna toetusega.
+
+```{r}
+ref.keskmine = df %>%
+  filter(party == "ref",
+         year>=2011 | year<2015) %>%
+  pull(support) %>%
+  na.omit() %>%
+  mean()
+
+kesk = df %>%
+  filter(party == "kesk",
+         year>=2011 | year<2015) %>%
+  pull(support) %>%
+  na.omit()
+
+t.test(kesk, mu=ref.keskmine)
+```
+
+### Kahe sõltumatu valimi t-test
+
+Kas valitsuse ja opositsiooni toetus erineb üldse oluliselt erinevatel ajahetkedel valimistsüklis? Selleks peaksime tegema kahe sõltumatu valimi t-testi. Testime seda esialgu vaid ühel aastal, näiteks 2014.
+
+```{r}
+df %>%
+  filter(year==2014) %>%
+  select(support,gov) %>%
+  t.test(support~gov,data=.)
+```
+
+<div class="tip">
+Vaatame, kuidas t-testi p-väärtus varieerub erinevatel aastatel.
+
+```{r}
+plyr::ldply(unique(df$year), function(x){
+  data.frame(p.value = df %>%
+               filter(year==x) %>%
+               select(support,gov) %>%
+               t.test(support~gov,data=.)%>%
+               .$p.value,
+             year = x)
+  }) %>%
+  ggplot() +
+  geom_point(aes(year,p.value)) +
+  geom_hline(yintercept = 0.05) +
+  scale_x_continuous(breaks=2007:2017) +
+  theme_bw()
+```
+
+Paneme lisaks kõrvale keskmised toetusnumbrid antud aastatel.
+
+```{r}
+df %>%
+  group_by(year,gov=as.factor(gov)) %>%
+  summarise(support = mean(support,na.rm=T)) %>%
+  ggplot() +
+  geom_point(aes(year,support,color=gov)) +
+  geom_line(aes(year,support,color=gov)) +
+  scale_x_continuous(breaks=2007:2017) +
+  scale_y_continuous(labels=scales::percent) +
+  theme_bw()
+```
+
+</div>
+
+### Kahe sõltuva valimi t-test
+
+Kahe sõltuva valimi t-testi erakonnatoetuse andmestikuga teha ei saa, sest meie uuringu disain ei vasta sellele. Selleks avame ühe teise andmestiku, milleks on paneeluuring enne ja pärast 2014.a. EP valimisi.
+
+```{r}
+summary(paneel)
+```
+
+Vaatame näiteks, kas kurikuulus „Haldermanni case“ avaldas mõju e-valimiste usaldusele (vt näit <a href="http://www.delfi.ee/news/paevauudised/eesti/eksperdid-eesti-e-valimised-on-nii-ebaturvalised-et-tuleks-kohe-ara-lopetada?id=68657131">Eksperdid: Eesti e-valimised on nii ebaturvalised, et tuleks kohe ära lõpetada</a>). Antud asja kajastus levis laiemalt 13. mail selleks ajaks oli paneeluuringu esimeses laines juba piisavalt palju inimesi intervjueeritud, vaatame kas ja kuidas nende usaldus nägi välja enne ja kuidas pärast.
+
+Esimene intervjueerimislaine kestis ka pärast antud juhtumit, mistõttu tuleks sealt välja filteerida vaatlused pärast 13. maid. Ühtlasi puhastame andmed keeldunud ja puuduvatest väärtustest (kodeeritud 97 ja 98).
+
+```{r}
+df2 = paneel %>%
+  mutate(submitdate = as.Date(submitdate),
+         usaldus.enne = case_when(
+           submitdate < as.Date("2014-05-13") & !(Q16_2 %in% c(97:98)) ~ Q16_2),
+         usaldus.parast = case_when(
+           !(j_reluuring_Q13_2 %in% c(97:98)) ~ j_reluuring_Q13_2)
+         )
+
+summary(df2[c("usaldus.enne", "usaldus.parast")])
+```
+
+Nüüd saame teha kahe sõltuva valimi t-testi.
+
+```{r}
+t.test(df2$usaldus.enne, df2$usaldus.parast, paired=T)
+```
+
 # Korrelatsioon
 # Lineaarne regressioon
 # Logistiline regressioon
