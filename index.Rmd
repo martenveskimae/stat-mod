@@ -774,7 +774,7 @@ Tekib küsimus, kas Keskerakonna keskmine toetus üldse erineb oluliselt Reformi
 <div class="tip">
 T-statistiku arvutamiseks ühe valimi puhul on valemiks:
 
-$t = \frac{\bar{x} - \mu_o}{s / \sqrt{N}}$
+$t=\frac{\bar{x}-\mu_o}{\frac{s}{\sqrt{N}}}$
 
 kus
 
@@ -783,11 +783,11 @@ kus
 
 ..kahe sõltumatu valimi puhul:
 
-$t = \frac{\bar{x_1}-\bar{x_2}}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}$
+$t=\frac{\bar{x_1}-\bar{x_2}}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}$
 
 ..ja kahe sõltuva valimi puhul:
 
-$t = \frac{\frac{\sum{d}}{N}}{\sqrt{\frac{\sum{d^2}-\frac{(\sum{d^2})}{N}}{N(N-1)}}}$
+$t=\frac{\frac{\sum{d}}{N}}{\sqrt{\frac{\sum{d^2}-\frac{(\sum{d^2})}{N}}{N(N-1)}}}$
 
 kus
 
@@ -829,10 +829,8 @@ ggplot() +
 Joonte vahele jäänud tulemused olid statistiliselt ebaolulised ning servadesse sattunud tulemused statistiliselt olulised 95% usaldusnivoo puhul. Võime arvutada, mitu protsenti osutus olulisteks.
 
 ```{r}
-pc = length(t.statistikud[t.statistikud<=a95[1] | t.statistikud>=a95[2]]) / length(t.statistikud)
-pc
+length(t.statistikud[t.statistikud<=a95[1] | t.statistikud>=a95[2]]) / length(t.statistikud)
 ```
-`r paste0(round(pc*100,2),"%")`. Peaaegu oodatav tulemus!
 
 </div>
 
