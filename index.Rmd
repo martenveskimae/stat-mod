@@ -746,12 +746,12 @@ paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
 
 ## T-test
 
-Vaatame Eesti poliitika sukka ja saabast ehk Reformierakonda ja Keskerakonda eelmisel valimistsükli ajal.
+Vaatame Eesti poliitika sukka ja saabast ehk Reformierakonda ja Keskerakonda eelmise valimistsükli ajal.
 
 ```{r}
 df %>%
   filter(party %in% c("ref", "kesk"),
-         year>=2011 | year<2015) %>%
+         year>=2011 & year<2015) %>%
   ggplot() +
   geom_point(aes(as.Date(date),support)) +
   facet_wrap(~party) +
@@ -760,23 +760,97 @@ df %>%
   theme_bw()
 ```
 
-Tekib küsimus, kas Keskerakonna keskmine toetus üldse erineb oluliselt Reformi keskmisest toetusest?
+Nende keskmine toetus on antud perioodil:
+```{r}
+df %>%
+  filter(party %in% c("ref", "kesk"),
+         year>=2011 & year<2015) %>%
+  group_by(party) %>%
+  summarise(keskmine = mean(support,na.rm=T))
+```
+
+Tekib küsimus, kas Keskerakonna keskmine toetus üldse erineb oluliselt Reformi keskmisest toetusest? Kahe keskmise võrdlemiseks saab kasutada t-testi meetodit (R-is `t.test(...)`), mis hindab, kas kaks keskmist pärinevad samast populatsioonist või on tegu erinevate gruppidega. Lihtsustatult öeldes, võrreldakse t-testis keskmiste erinevust kogu variatsiooniga, ning hinnatakse saadud tulemuse tõenäosust (kas tegu oli tõenäolise või ebatõenäolise tulemusega, ehk statistiliselt oluline või mitte). T-testi eelduseks on, et mõlemad valimid on normaaljaotuslikud ning sarnase variatiivsusega (viimast eeldust on võimalik rikkuda kasutades "robustset" t-testi, kus vabadusastmeid arvutatakse teisel meetodil!; R kasutab vaikimisi robustset versiooni - argument `var.equal = FALSE`).
+
+<div class="tip">
+T-statistiku arvutamiseks ühe valimi puhul on valemiks:
+
+$t = \frac{\bar{x} - \mu_o}{s / \sqrt{N}}$
+
+kus
+
+- $\mu_0$ on võrreldav keskmine
+- s on valimi standardhälve
+
+..kahe sõltumatu valimi puhul:
+
+$t = \frac{\bar{x_1}-\bar{x_2}}{\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}}$
+
+..ja kahe sõltuva valimi puhul:
+
+$t = \frac{\frac{\sum{d}}{N}}{\sqrt{\frac{\sum{d^2}-\frac{(\sum{d^2})}{N}}{N(N-1)}}}$
+
+kus
+
+- d on paaris olevate väärtuste erinevus
+- N on paaride arv
+
+Teeme meetodi illustreerimiseks simulatsiooni. Ütleme, et meil on kaks sõltumatut normaaljaotusega vektorit, mõlemad 50 vaatlusega. Arvutame vektorite t-testi tulemused ja kordame katset 1000 korda (iga kord uute andmetega).
+
+```{r}
+t.statistikud = replicate(1000, t.test(rnorm(50), rnorm(50))$statistic)
+```
+
+Vaatame saadud t-statistikute jaotust visuaalselt
+```{r}
+ggplot() +
+  geom_density(aes(t.statistikud)) +
+  theme_bw()
+```
+
+Kui meie eeldused peavad paika, siis peaks tulemus lähenema t-jaotusele vabadusastmel 98 (50+50-2). Genereerime t-jaotuse antud vabadusastmetega ja arvutame 95% usaldusvahemikud. T-jaotuse leidmiseks peaksime leidma t-statistikute umbkaudsed otspunktid, näiteks käsklusega `range(...)`, seejärel looma sümmeetrilise (sest t-jaotus on sümmeetriline!) vektori käsklusega `seq(...)` ning arvutama saadud vektori t-jaotusliku tiheduse etteantud vabadusastmete puhul (praegu 98), kasutades käsklust `dt(...)`. Nendest saavad teoreetilise jaotuse x ja y atribuudid. Usaldusvahemike leidmiseks kasutame käsklust `qt(..)`, mis arvutab teoreetilise jaotuse kvantiilid (praegu 0.025 ja 0.975).
+
+Lisame tulemused eelnenud graafile.
+
+```{r}
+r = mean(abs(range(t.statistikud)))
+x = seq(-r,r,length=100)
+y = dt(x,df=98)
+
+a95 = qt(c(.025, .975), df=98)
+
+ggplot() +
+  geom_density(aes(t.statistikud,color="simuleeritud t-statistikud")) +
+  geom_line(aes(x,y,color="teoreetiline t-jaotus")) +
+  geom_vline(xintercept = a95[1]) +
+  geom_vline(xintercept = a95[2]) +
+  theme_bw()
+```
+
+Joonte vahele jäänud tulemused olid statistiliselt ebaolulised ning servadesse sattunud tulemused statistiliselt olulised 95% usaldusnivoo puhul. Võime arvutada, mitu protsenti osutus olulisteks.
+
+```{r}
+pc = length(t.statistikud[t.statistikud<=a95[1] | t.statistikud>=a95[2]]) / length(t.statistikud)
+pc
+```
+`r paste0(round(pc*100,2),"%")`. Peaaegu oodatav tulemus!
+
+</div>
 
 ### Ühe valimi t-test
 
-Hindame seda ühe valimi t testiga. Leiame Reformierakonna keskmise toetuse perioodil 2011-2014 ja võrdleme seda keskerakonna toetusega.
+Hindame seda esmalt ühe valimi t testiga. Leiame Reformierakonna keskmise toetuse perioodil 2011-2014 ja võrdleme seda keskerakonna toetusega.
 
 ```{r}
 ref.keskmine = df %>%
   filter(party == "ref",
-         year>=2011 | year<2015) %>%
+         year>=2011 & year<2015) %>%
   pull(support) %>%
   na.omit() %>%
   mean()
 
 kesk = df %>%
   filter(party == "kesk",
-         year>=2011 | year<2015) %>%
+         year>=2011 & year<2015) %>%
   pull(support) %>%
   na.omit()
 
@@ -802,7 +876,7 @@ plyr::ldply(unique(df$year), function(x){
   data.frame(p.value = df %>%
                filter(year==x) %>%
                select(support,gov) %>%
-               t.test(support~gov,data=.)%>%
+               t.test(support~gov,data=.) %>%
                .$p.value,
              year = x)
   }) %>%
@@ -839,7 +913,7 @@ summary(paneel)
 
 Vaatame näiteks, kas kurikuulus „Haldermanni case“ avaldas mõju e-valimiste usaldusele (vt näit <a href="http://www.delfi.ee/news/paevauudised/eesti/eksperdid-eesti-e-valimised-on-nii-ebaturvalised-et-tuleks-kohe-ara-lopetada?id=68657131">Eksperdid: Eesti e-valimised on nii ebaturvalised, et tuleks kohe ära lõpetada</a>). Antud asja kajastus levis laiemalt 13. mail selleks ajaks oli paneeluuringu esimeses laines juba piisavalt palju inimesi intervjueeritud, vaatame kas ja kuidas nende usaldus nägi välja enne ja kuidas pärast.
 
-Esimene intervjueerimislaine kestis ka pärast antud juhtumit, mistõttu tuleks sealt välja filteerida vaatlused pärast 13. maid. Ühtlasi puhastame andmed keeldunud ja puuduvatest väärtustest (kodeeritud 97 ja 98).
+Esimene intervjueerimislaine kestis ka pärast antud juhtumit, mistõttu tuleks sealt välja filtreerida vaatlused pärast 13. maid. Ühtlasi puhastame andmed keeldunud ja puuduvatest väärtustest (kodeeritud 97 ja 98).
 
 ```{r}
 df2 = paneel %>%
