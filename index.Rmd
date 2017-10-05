@@ -734,6 +734,7 @@ sim %>%
 
 ```{r}
 library(tidyverse)
+library(effsize)
 library(ggthemes)
 ```
 
@@ -913,22 +914,130 @@ Vaatame näiteks, kas kurikuulus „Haldermanni case“ avaldas mõju e-valimist
 
 Esimene intervjueerimislaine kestis ka pärast antud juhtumit, mistõttu tuleks sealt välja filtreerida vaatlused pärast 13. maid. Ühtlasi puhastame andmed keeldunud ja puuduvatest väärtustest (kodeeritud 97 ja 98).
 
-```{r}
-df2 = paneel %>%
-  mutate(submitdate = as.Date(submitdate),
-         usaldus.enne = case_when(
-           submitdate < as.Date("2014-05-13") & !(Q16_2 %in% c(97:98)) ~ Q16_2),
-         usaldus.parast = case_when(
-           !(j_reluuring_Q13_2 %in% c(97:98)) ~ j_reluuring_Q13_2)
-         )
+<div class="tip">
 
-summary(df2[c("usaldus.enne", "usaldus.parast")])
+Kuidas muuta andmeid R-is *juhul kui* tingimusel. Kõige lihtsam variant on kasutada `ifelse(...)` käsklust, millesse läheb kolm argumenti:
+
+1. tingimus (loogiline võrdlus);
+2. väärtus tõese tulemuse korral;
+3. väärtus väära tulemuse korral.
+
+Näiteks võtame vektori, mis sisaldab erinevaid taimi ja kodeerime selle ümber puu- ja köögiviljadeks:
+```{r}
+taimed = c("apelsin", "kurk", "õun", "porgand", "peet")
+ifelse(taimed %in% c("apelsin", "õun"), "puuvili", "köögivili")
 ```
+
+Mida aga teha juhul, kui gruppe on üle kahe? If else puhul tuleks lisada iga järgnev kriteerium väära väärtussesse:
+
+```{r}
+taimed = c("sibul", "till", "küüslauk", "kapsas", "piparmünt")
+ifelse(taimed %in% c("sibul", "küüslauk"), "sibulköögivili",
+       ifelse(taimed %in% c("till", "piparmünt"), "maitseköögivili", "lehtköögivili"))
+```
+
+Gruppide kasvades pole if else enam seega sobilik vahend. Paindlikum on paketist **dplyr** tulenevat funktsiooni `case_when()`, millesse tuleb sisestada vaid kaks argumenti: tingimus ja väärtus tõese tulemuse korral (eraldatud sümboliga `~`). Väärad tulemused märgitakse vaikimise puuduvateks väärtusteks, kuid ka neile võib anda väärtuse, mispuhul oleks tingimuseks `TRUE`:
+
+```{r}
+case_when(taimed %in% c("sibul", "küüslauk") ~ "sibulköögivili",
+          taimed %in% c("till", "piparmünt") ~ "maitseköögivili",
+          TRUE ~ "lehtköögivili")
+```
+
+case_when tingimusi saab esitada lõpmatu arv.
+
+</div>
+
+```{r}
+enne.parast = paneel %>%
+  mutate(t1.date = as.Date(t1.date),
+         usaldus.enne = case_when(
+           t1.date < as.Date("2014-05-13") & !(t1.evalimiste.usaldus %in% c(97:98)) ~ t1.evalimiste.usaldus),
+         usaldus.parast = case_when(
+           !(t2.evalimiste.usaldus %in% c(97:98)) ~ t2.evalimiste.usaldus)
+         ) %>%
+  select(usaldus.enne, usaldus.parast)
+
+summary(enne.parast[c("usaldus.enne", "usaldus.parast")])
+```
+
 
 Nüüd saame teha kahe sõltuva valimi t-testi.
 
 ```{r}
-t.test(df2$usaldus.enne, df2$usaldus.parast, paired=T)
+t.test(enne.parast$usaldus.enne, enne.parast$usaldus.parast, paired=T)
+```
+
+## Anova
+
+Eelmisest ülesandest oli näha, et statistiliselt olulist seost polnud. Kuid et tulemuses päris kindel olla, tuleks võtta arvesse veel teisigi võimalusi:
+
+1. efekt võis olla lühiajaline, mis tähendab, et selle mõju lahtus järeluuringu ajaks;
+2. efekt võis sõltuda lisatingimustest, mida eelmises näites arvesse ei võetud.
+
+Kontrollime neid variante! Esmalt vaatame järgi, kas efekt oli lühiajaline. Üks viis selleks on kollabeerida andmed intervjueerimise päevade kaupa ja võrrelda muutust ajas.
+
+```{r}
+paneel %>%
+  mutate(usaldus = case_when(!(t1.evalimiste.usaldus %in% 97:98) ~ t1.evalimiste.usaldus)) %>%
+  group_by(t1.date) %>%
+  summarise(keskmine = mean(usaldus, na.rm=T),
+            sd = sd(usaldus, na.rm=T)) %>%
+  ggplot() +
+  geom_line(aes(as.Date(t1.date), keskmine, color="Keskmine")) +
+  geom_line(aes(as.Date(t1.date), sd, color="Standardhälve")) +
+  scale_x_date(date_breaks="2 days") +
+  labs(x="Kuupäev", y="Usaldus (0-10)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=30,vjust=0.6))
+```
+
+Tõepoolest on näha, et usaldus langeb 13. ja 14. mai, kuid seejärel taastub.
+
+Teiseks uurime, kas erinevus võib ilmneda mingite kolmandate tunnuste alusel. Andmestikus on meil selleks tunnus osalusviisi kohta.
+```{r}
+summary(paneel$t2.osalusviis)
+```
+
+Seega tuleks teha juba varasem enne-pärast võrdlus antud gruppide lõikes. Selleks kasutame ANOVA-t, R-is `aov(...)`:
+
+```{r}
+anova.data = paneel %>%
+  mutate(t1.date = as.Date(t1.date),
+         usaldus.enne = case_when(
+           t1.date < as.Date("2014-05-13") & !(t1.evalimiste.usaldus %in% c(97:98)) ~ t1.evalimiste.usaldus),
+         usaldus.parast = case_when(
+           !(t2.evalimiste.usaldus %in% c(97:98)) ~ t2.evalimiste.usaldus)
+         ) %>%
+  select(usaldus.enne, usaldus.parast, t2.osalusviis)
+
+aov(usaldus.enne-usaldus.parast ~ t2.osalusviis, data=anova.data) %>% summary()
+```
+
+Ka siin selgub, et esineb statistiliselt oluline seos. Paraku ei anna anova otsest aimdust selle kohta, milliste gruppide vahel seos on. Hea on seega vaadata jaotusi graafiliselt, näiteks karpdiagrammi abil.
+
+```{r}
+anova.data %>%
+  na.omit() %>%
+  ggplot() +
+  geom_boxplot(aes(t2.osalusviis, usaldus.enne-usaldus.parast)) +
+  theme_bw()
+```
+
+Pilt viitab justkui sellele, et paberhääletajatel jaotusid erinevused võrdselt ümber nulli, samas e-hääletajate usaldus oli langenud ja mittehääletajatel tõusnud.
+
+## Efekti suurus (Coheni d)
+
+Tihti huvitab meid statistikas *efekti suurus*. St, kui suurt mõju üks tunnus teisele avaldab. Keskmiste võrdluse puhul loetakse efekti suuruseks erinevust erinevust kahe keskmise vahel, jagatuna andmete standardhälvega:
+
+$d=\frac{\bar{x_1}-\bar{x_2}}{s}$
+
+Antud efekti suurust nimetatakse **Coheni d-ks**. Coheni d leidmiseks kasutame paketti **effsize** ja funktsiooni `cohen.d(...)`, mis jäljendab oma loogikalt t-testi `t.test(...)`.
+
+```{r}
+df %>%
+  filter(party %in% c("kesk", "ref")) %>%
+  cohen.d(support ~ party, data=.)
 ```
 
 # Korrelatsioon
