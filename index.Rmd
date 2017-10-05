@@ -73,7 +73,7 @@ Sellega seoses on sel ka miinuseid:
 
 ## Kasulikud lingid
 
-Nädal 1:
+Sissejuhatus:
 
 - <a href="http://dplyr.tidyverse.org">Grammar of Data Manipulation • dplyr</a>
 - <a href="http://ggplot2.tidyverse.org">Elegant Data Visualisations Using the Grammar of Graphics • ggplot2</a>
@@ -81,14 +81,18 @@ Nädal 1:
 - <a href="https://www.tutorialspoint.com/r/r_operators.htm">R - Operators</a>
 - <a href="http://rmarkdown.rstudio.com/lesson-1.html">R Markdown</a>
 
-Nädal 2:
+Jaotus ja keskmised:
 
 - <a href="https://www.datacamp.com/community/tutorials/r-tutorial-apply-family#gs.oydmaoU">Tutorial on the R Apply Family</a>
 - <a href="http://seananderson.ca/2013/10/19/reshape.html">An Introduction to reshape2</a>
 
-Nädal 3:
+Usaldusvahemikud:
 
 - <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">Bootstrapping</a>
+
+Keskmiste võrdlus:
+
+- <a href="https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/case_when">case_when</a>
 
 Huvitavat:
 
@@ -914,8 +918,20 @@ Vaatame näiteks, kas kurikuulus „Haldermanni case“ avaldas mõju e-valimist
 
 Esimene intervjueerimislaine kestis ka pärast antud juhtumit, mistõttu tuleks sealt välja filtreerida vaatlused pärast 13. maid. Ühtlasi puhastame andmed keeldunud ja puuduvatest väärtustest (kodeeritud 97 ja 98).
 
-<div class="tip">
+```{r}
+enne.parast = paneel %>%
+  mutate(t1.date = as.Date(t1.date),
+         usaldus.enne = case_when(
+           t1.date < as.Date("2014-05-13") & !(t1.evalimiste.usaldus %in% c(97:98)) ~ t1.evalimiste.usaldus),
+         usaldus.parast = case_when(
+           !(t2.evalimiste.usaldus %in% c(97:98)) ~ t2.evalimiste.usaldus)
+         ) %>%
+  select(usaldus.enne, usaldus.parast)
 
+summary(enne.parast[c("usaldus.enne", "usaldus.parast")])
+```
+
+<div class="tip">
 Kuidas muuta andmeid R-is *juhul kui* tingimusel. Kõige lihtsam variant on kasutada `ifelse(...)` käsklust, millesse läheb kolm argumenti:
 
 1. tingimus (loogiline võrdlus);
@@ -944,23 +960,8 @@ case_when(taimed %in% c("sibul", "küüslauk") ~ "sibulköögivili",
           TRUE ~ "lehtköögivili")
 ```
 
-case_when tingimusi saab esitada lõpmatu arv.
-
+case_when tingimusi saab esitada lõpmatu arv. Rohkem infot: <a href="https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/case_when">case_when</a>.
 </div>
-
-```{r}
-enne.parast = paneel %>%
-  mutate(t1.date = as.Date(t1.date),
-         usaldus.enne = case_when(
-           t1.date < as.Date("2014-05-13") & !(t1.evalimiste.usaldus %in% c(97:98)) ~ t1.evalimiste.usaldus),
-         usaldus.parast = case_when(
-           !(t2.evalimiste.usaldus %in% c(97:98)) ~ t2.evalimiste.usaldus)
-         ) %>%
-  select(usaldus.enne, usaldus.parast)
-
-summary(enne.parast[c("usaldus.enne", "usaldus.parast")])
-```
-
 
 Nüüd saame teha kahe sõltuva valimi t-testi.
 
