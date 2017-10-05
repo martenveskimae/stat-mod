@@ -944,7 +944,7 @@ taimed = c("apelsin", "kurk", "õun", "porgand", "peet")
 ifelse(taimed %in% c("apelsin", "õun"), "puuvili", "köögivili")
 ```
 
-Mida aga teha juhul, kui gruppe on üle kahe? If else puhul tuleks lisada iga järgnev kriteerium väära väärtussesse:
+Mida aga teha juhul, kui gruppe on üle kahe? *If else* puhul tuleks lisada iga järgnev kriteerium väära väärtussesse:
 
 ```{r}
 taimed = c("sibul", "till", "küüslauk", "kapsas", "piparmünt")
@@ -952,7 +952,12 @@ ifelse(taimed %in% c("sibul", "küüslauk"), "sibulköögivili",
        ifelse(taimed %in% c("till", "piparmünt"), "maitseköögivili", "lehtköögivili"))
 ```
 
-Gruppide kasvades pole if else enam seega sobilik vahend. Paindlikum on paketist **dplyr** tulenevat funktsiooni `case_when()`, millesse tuleb sisestada vaid kaks argumenti: tingimus ja väärtus tõese tulemuse korral (eraldatud sümboliga `~`). Väärad tulemused märgitakse vaikimise puuduvateks väärtusteks, kuid ka neile võib anda väärtuse, mispuhul oleks tingimuseks `TRUE`:
+Gruppide kasvades pole *if else* enam seega sobilik vahend. Paindlikum on kasutada paketist **dplyr** tulenevat funktsiooni `case_when()`, millesse tuleb sisestada vaid kaks argumenti:
+
+1. tingimus;
+2. väärtus tõese tulemuse korral.
+
+Argumendid tuleb eraldada sümboliga `~` ja erinevad argumendi read komadega. Väärad tulemused märgitakse vaikimise puuduvateks väärtusteks, kuid ka neile võib anda väärtuse, mispuhul oleks tingimuseks lihtsalt `TRUE`:
 
 ```{r}
 case_when(taimed %in% c("sibul", "küüslauk") ~ "sibulköögivili",
@@ -960,7 +965,7 @@ case_when(taimed %in% c("sibul", "küüslauk") ~ "sibulköögivili",
           TRUE ~ "lehtköögivili")
 ```
 
-case_when tingimusi saab esitada lõpmatu arv. Rohkem infot: <a href="https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/case_when">case_when</a>.
+case_when argumendi ridu saab esitada lõpmatu arv. Rohkem infot: <a href="https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/case_when">case_when</a>.
 </div>
 
 Nüüd saame teha kahe sõltuva valimi t-testi.
