@@ -27,8 +27,8 @@ Sys.setlocale("LC_ALL", "UTF-8")
   text-align:left;
   color:rgb(0,102,204);
   vertical-align: middle;
-  padding:40px 0; 
-  margin-top:10px;
+  padding:10px 0; 
+  margin:10px;
   border-radius: 5px;
   border: 1px solid rgba(204,229,255,0.7);
 }
