@@ -97,6 +97,7 @@ Keskmiste võrdlus:
 Huvitavat:
 
 - <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja (intervjuu)</a>
+- <a href="https://www.youtube.com/watch?v=5Dnw46eC-0o&ab_channel=O%27Reilly">John Rauser keynote: Statistics Without the Agonizing Pain</a>
 
 ## Installeerimiseks
 
@@ -650,18 +651,14 @@ $p \pm ci_{95} = p \pm 1.96 \cdot SE$
 Kuivõrd tegu on küllalt spetsiifilise küsimusega, siis on otstarbekas teha oma funktsioon.
 
 ```{r}
-ci.95 = function(p,n=1000,z=1.96){
-  y = p + (z*(sqrt(p*(1-p)/n)))
-  a = p - (z*(sqrt(p*(1-p)/n)))
-  
-  tmp = list(y = y,
-             a = a)
-  return(tmp)
+ci = function(p,n=1000,z=1.96){
+  list(u = p + (z*(sqrt(p*(1-p)/n))),
+       l = p - (z*(sqrt(p*(1-p)/n))))
 }
 
 df %>%
-  mutate(ylemine =  ci.95(support)[["y"]],
-         alumine =  ci.95(support)[["a"]]) %>%
+  mutate(ylemine =  ci(support)[["u"]],
+         alumine =  ci(support)[["l"]]) %>%
   melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
   ggplot() +
   geom_line(aes(as.Date(date), value, color=Toetus)) +
@@ -675,8 +672,8 @@ df %>%
 Lihtsamaks lugemiseks võime jooned üle siluda.
 ```{r}
 df %>%
-  mutate(ylemine =  ci.95(support)[["y"]],
-         alumine =  ci.95(support)[["a"]]) %>%
+  mutate(ylemine =  ci(support)[["u"]],
+         alumine =  ci(support)[["l"]]) %>%
   melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
   ggplot() +
   geom_smooth(aes(as.Date(date), value, color=Toetus), se=F, method="lm", formula= y~poly(x, 7), size=.7) +
@@ -695,22 +692,20 @@ Kuna antud juhul on tegu proportsioonidega ning me soovime igat üksikut vaatlus
 Mündiviske simulatsiooniks kasutame paketti **mosaic** ning funktsioone `do(...)`, `rFlip(...)` ja `confint(...)`. Käesolevas katses: `do(1000)` kordab katset 1000 korda ning `rFlip(party.n,x)` viskab ühes katses münti nii mitu korda, kui palju on erakonnaga seotud vaatlusi, tõenäosusega x. `confint(...)` arvutab simulatsiooni usaldusvahemikud.
 
 ```{r, eval=FALSE}
-toetus.sim = function(x,party,yleminea.alumine){
+toetus.sim = function(x,party){
   require(mosaic)
   if(is.na(x)) return(NA)
   party.n = nrow(df[df$party==party & !is.na(df$support),])
-
   tmp = do(1000) * rflip(party.n,x)
   ci = confint(tmp$prop)
-  
-  if(yleminea.alumine=="y") return(ci[["97.5%"]])
-  if(yleminea.alumine=="a") return(ci[["2.5%"]])
+  list(u = ci[["97.5%"]],
+       l = ci[["2.5%"]])
 }
 
 df %>%
   rowwise() %>%
-  mutate(ylemine = toetus.sim(support,party,"y"),
-         alumine = toetus.sim(support,party,"a")) %>%
+  mutate(ylemine = toetus.sim(support,party)[["u"]],
+         alumine = toetus.sim(support,party)[["l"]]) %>%
   melt(c("party", "date"), c("support", "ylemine", "alumine"),"Toetus") %>%
   ggplot() +
   geom_smooth(aes(as.Date(date), value, color=Toetus), se=F, method="lm", formula= y~poly(x, 7), size=.7) +
@@ -1038,7 +1033,7 @@ Tihti huvitab meid statistikas *efekti suurus*. St, kui suurt mõju üks tunnus 
 
 $d=\frac{\bar{x_1}-\bar{x_2}}{s}$
 
-Antud efekti suurust nimetatakse **Coheni d-ks**. Coheni d leidmiseks kasutame paketti **effsize** ja funktsiooni `cohen.d(...)`, mis jäljendab oma loogikalt t-testi `t.test(...)`.
+Antud efekti suurust nimetatakse **Coheni d-ks**. Coheni d leidmiseks kasutame paketti **effsize** ja funktsiooni `cohen.d(...)`, mis jäljendab oma loogikalt t-testi `t.test(...)`. (Antud funktsioon kasutab siiski eelnevalt toodud valemi robustsemat edasiarendust, kuid selle loogika on siiski sama!)
 
 ```{r}
 df %>%
