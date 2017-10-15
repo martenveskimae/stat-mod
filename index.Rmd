@@ -30,7 +30,7 @@ Sys.setlocale("LC_ALL", "UTF-8")
   padding:10px 0; 
   margin:10px;
   border-radius: 5px;
-  border: 1px solid rgba(204,229,255,0.7);
+  border:1px solid rgba(204,229,255,0.7);
 }
 .tip a{
   color:rgb(0,51,102);
@@ -93,6 +93,10 @@ Usaldusvahemikud:
 Keskmiste võrdlus:
 
 - <a href="https://www.rdocumentation.org/packages/dplyr/versions/0.7.3/topics/case_when">case_when</a>
+
+Visualiseerimine:
+
+- <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">R Color Cheatsheet</a>
 
 Huvitavat:
 
@@ -1041,6 +1045,223 @@ df %>%
   cohen.d(support ~ party, data=.)
 ```
 
+# Visualiseerimine
+
+### Paketid
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+```
+
+### Andmestik
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+```
+
+## Tulpdiagramm
+
+Tulpdiagramm on sobilik juhul, kui soovime võrrelda kategoorilise tunnuse gruppe ühe või väikese arvu tunnuste lõikes. Juhul, kui tunnuseid on mitu, võib tunnuste väärtused asetada üksteise otsa või üksteise kõrvale (lähemalt all). Antud diagrammi eelis seisneb võimaluses hinnata lihtsa vaevaga tulpade erinevusi tulpade kõrgustes (sellest tulenevalt tuleks võrreldavate tunnuste arv hoida pigem madalal).
+
+Püüame näiteks graafida erakondade keskmised toetusnumbrid aastate lõikes. Tulpdiagrammi loomiseks on funktsioon `geom_col(...)`. Teeme tulpdiagrammi, kus x-teljel on aastad, y-teljel iga erakondade keskmine toetus ning tulba värv on seotud erakonnaga.
+
+```{r}
+df %>%
+  group_by(party, year) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party))
+```
+
+Antud juhul käsitletakse x-teljel olevat tunnust year arvtunnusena, mistõttu on ggplot ise otsustanud, millise vahega väärtusi joonisel kuvada. Praegu võiks kuvada kõik aastad. Kõige lihtsam variant on kasutada käsklust `as.factor(year)`, mis muudab tunnuse kategooriliseks (võib kasutada nii ggploti sees, kui ka enne seda).
+
+```{r}
+df %>%
+  group_by(party, year = as.factor(year)) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party))
+```
+
+Joonisel on keeruline võrrelda tulpade keskel olevaid erakondi. Parem oleks asetada erinevad erakonnad üksteise kõrvale. Selleks kasutame argumenti **position**: `geom_col(position="dodge")`.
+
+```{r}
+df %>%
+  group_by(party, year = as.factor(year)) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party), position="dodge")
+```
+
+Parem! Järgmiseks oleks hea muuta joonise värve üksteisest selgemalt eristuvaks. Muudame ära ka legendi pealkirja. Selleks peaksime muutma **fill** skaala argumente `scale_fill_brewer(palette="Accent", name="Erakonnad")` (värvide käsitsi sisestamiseks tuleks kasutada `scale_fill_manual(values=c(...))`).
+
+<div class="tip">
+R kasutab värvide genereerimiseks Color Brewerit (pakett RColorBrewer).
+Rohkem infot: <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">R Color Cheatsheet</a>
+</div>
+
+```{r}
+df %>%
+  group_by(party, year = as.factor(year)) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party), position="dodge") +
+  scale_fill_brewer(palette="Accent", name="Erakonnad")
+```
+
+Veel tuleks muuta y-telje skaala protsentideks, kasutades selleks paketti *scales* `scale_y_continuous(labels=scales::percent)`. Muudame ära ka telgede nimetused ning lisame pealkirja ja viite käsklusega `labs(x="Aasta", y="Toetus",title="Erakondade keskmine toetus",caption="Kantar Emor küsitlusandmetel")`.
+
+```{r}
+df %>%
+  group_by(party, year = as.factor(year)) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party), position="dodge") +
+  scale_fill_brewer(palette="Accent", name="Erakonnad") +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="Aasta", y="Toetus",title="Erakondade keskmine toetus",caption="Kantar Emor küsitlusandmetel")
+```
+
+Viimaks muudame joonise tausta valgeks juba tuttava käsklusega `theme_bw()`.
+
+```{r}
+df %>%
+  group_by(party, year = as.factor(year)) %>%
+  summarise(keskmine.toetus = mean(support, na.rm=T)) %>%
+  ggplot() +
+  geom_col(aes(year, keskmine.toetus, fill=party), position="dodge") +
+  scale_fill_brewer(palette="Accent", name="Erakonnad") +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="Aasta", y="Toetus",title="Erakondade keskmine toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+## Histogramm
+
+Histogramm on sobilik arvtunnuse jaotuse visualiseerimiseks. Histogrammi kuvamiseks on ggplotis käsklus `geom_histogramm(...)`. Histogrammi y-telg on vaikimisi sagedus, ent selle võib kirjutada soovi korral üle. Histogrammil on võimalik seadistada vahemike laiust või hulka (argumendid `bin` ja `binwidth`).
+
+```{r}
+df %>%
+  ggplot() +
+  geom_histogram(aes(support), binwidth=0.02) +
+  scale_x_continuous(labels=scales::percent) +
+  labs(x="Toetus", y="Sagedus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+Iga erakonna kohta eraldi joonise kuvamiseks võime kasutada käsklusi `facet_wrap(~party)` või `facet_grid(~party)`.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_histogram(aes(support), binwidth=0.02) +
+  facet_wrap(~party) +
+  scale_x_continuous(labels=scales::percent) +
+  labs(x="Toetus", y="Sagedus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+## Karpdiagramm ja viiuldiagramm
+
+Arvtunnuse jaotuse näitamiseks on võimalik kasutada lisaks histogrammile karpdiagrammi `geom_boxplot(...)` ja viiuldiagrammi `geom_violin(...)`. Karpdiagrammile võib hajutatult kuvada ka üksikud vaatlused käsklusega `geom_jitter(...)` (mõistlik on muuta kuvatud vaatlused läbipaistvaks argumendiga `alpha` ning koondada need kitsamale alale argumendiga `width`).
+
+```{r}
+df %>%
+  ggplot() +
+  geom_boxplot(aes(party,support)) +
+  geom_jitter(aes(party,support), alpha=0.2, width=0.2) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="Erakond", y="Toetus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+Viiuldiagramm annab veelgi täpsema ülevaate jaotusest. Viiuldiagrammile võib lisada kvantiilide jooned argumendiga `draw_quantiles`.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_violin(aes(party,support), draw_quantiles=c(.25,.5,.75)) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="Erakond", y="Toetus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+## Hajuvusdiagramm
+
+Hajuvusdiagrammi kasutatakse kahe arvtunnuse omavahelise seose visualiseerimiseks.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_point(aes(support,gdpgr_yearly)) +
+  scale_x_continuous(labels=scales::percent) +
+  facet_wrap(~party) +
+  labs(x="Toetus", y="SKT aastane muutus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
+## Joondiagramm
+
+Joondiagramm, nagu hajuvusdiagrammgi, on sobilik kahe arvtunnuse omavahelise seose visualiseerimiseks. Joondiagrammi kasutatakse rohkem siis, kui üks tunnustest on seotud ajaga.
+
+```{r}
+df %>%
+  ggplot() +
+  geom_line(aes(as.Date(date),support)) +
+  scale_y_continuous(labels=scales::percent) +
+  facet_wrap(~party) +
+  labs(x="", y="Toetus", title="Erakondade toetus",caption="Kantar Emor küsitlusandmetel") +
+  theme_bw()
+```
+
 # Korrelatsioon
+
+### Paketid
+
+```{r}
+library(tidyverse)
+library(psych)
+library(reshape2)
+library(ggthemes)
+```
+
+### Andmestik
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
+```
+
+## Korrelatsioon
+
+Vaatame kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni korrelatsiooni. Kuidas on seotud näiteks Reformierakonna toetus tööpuudusega, skp kasvuga ja inflatsiooniga?
+
+```{r}
+ref = df %>%
+  filter(party == "ref") %>%
+  select(support, unemp, gdpgr_yearly, inflats_m) %>%
+  na.omit()
+
+cor(ref)
+```
+
+Korrelatsioonide statistilise olulisuse jaoks tuleks kasutada `corr.test(...)` funktsiooni paketis *psych*.
+
+```{r}
+corr.test(ref)
+```
+
+Vaikimisi annab antud funktsioon nii korrelatsioonimaatriksi kui p-väärtused. Kui soovida vaid ühte, tuleks käskluse lõppu lisada kas `$r` või `$p` korrelatsioonide või p-väärtuste saamiseks. Alati on mõistlik hinnata pilti graafiliselt hajuvusdiagrammidega.
+
+**To do: korrelatsiooni joonis, spearmani korrelatsioon**
+```{r, include=FALSE}
+# corr.test(ref)$r %>%
+#   melt() %>%
+#   ggplot() +
+#   geom_tile(aes(Var1, Var2, fill=value)) +
+#   theme_bw()
+```
+
 # Lineaarne regressioon
 # Logistiline regressioon
