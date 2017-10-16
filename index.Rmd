@@ -1216,9 +1216,9 @@ df %>%
 ```
 
 <div class="tip">
-## Likert skaala
+## Likerti skaala
 
-Küsitlustes kasutatakse tihti likert skaalasid, mida visualiseeritakse enamasti tulpdiagrammi abil (skaala on protsentides).
+Küsitlustes kasutatakse tihti likerti skaalasid, mida visualiseeritakse enamasti tulpdiagrammi abil (skaala on protsentides).
 
 Kasutame näiteks EP 2014 andmestikust usalduse tunnust.
 ```{r}
@@ -1243,7 +1243,7 @@ usaldus %>%
   geom_col(aes(variable,pc,fill=value))
 ```
 
-Antud joonist saab muuta loetavamaks vahetades värviskaalat, pöörates joonise teljed ümber, muutes telgede nimesed jne.
+Antud joonist saab muuta loetavamaks vahetades värviskaalat, pöörates joonise telgi, muutes telgede nimesid jne.
 
 ```{r}
 usaldus %>%
@@ -1265,11 +1265,11 @@ usaldus.2 = usaldus %>%
 rownames(usaldus.2) = c("Enne", "Pärast")
 
 HH::likert(usaldus.2,
-       as.percent = TRUE,
-       ylab.right = "Kokku",
-       xlab="Osakaal",
-       main="E-valimiste usaldus",
-       sub="Likert skaala")
+           as.percent=T,
+           ylab.right="Vastanute arv",
+           xlab="Osakaal",
+           main="E-valimiste usaldus",
+           sub="")
 ```
 </div>
 
