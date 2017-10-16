@@ -1215,6 +1215,64 @@ df %>%
   theme_bw()
 ```
 
+<div class="tip">
+## Likert skaala
+
+Küsitlustes kasutatakse tihti likert skaalasid, mida visualiseeritakse enamasti tulpdiagrammi abil (skaala on protsentides).
+
+Kasutame näiteks EP 2014 andmestikust usalduse tunnust.
+```{r}
+library(reshape2)
+usaldus = paneel %>%
+  mutate(enne = case_when(!(t1.evalimiste.usaldus %in% 97:98) ~ t1.evalimiste.usaldus),
+         parast = case_when(!(t2.evalimiste.usaldus %in% 97:98) ~ t2.evalimiste.usaldus)) %>%
+  select(enne,parast) %>%
+  melt() %>%
+  na.omit() %>%
+  group_by(variable,value = as.factor(value)) %>%
+  summarise(count = n()) %>%
+  mutate(pc = count/sum(count[variable==variable]))
+
+usaldus
+```
+
+Graafime tulemused tulpdiagrammina.
+```{r}
+usaldus %>%
+  ggplot() +
+  geom_col(aes(variable,pc,fill=value))
+```
+
+Antud joonist saab muuta loetavamaks vahetades värviskaalat, pöörates joonise teljed ümber, muutes telgede nimesed jne.
+
+```{r}
+usaldus %>%
+  ggplot() +
+  geom_col(aes(variable,pc,fill=reorder(value,desc(value))),width=0.7) +
+  scale_fill_brewer(name="Usaldus",palette="Paired") +
+  scale_y_continuous(labels=scales::percent) +
+  scale_x_discrete(labels=c("Enne","Pärast")) +
+  labs(x="", y="Osakaal", title="E-valimiste usaldus",caption="EP 2014 valimiste küsitlusandmed") +
+  coord_flip() +
+  theme_minimal()
+```
+
+Alternatiiv on kasutada spetsiaalset likerti skaalade visualiseerimiseks mõeldud funktsiooni `likert(...)` paketist **HH**.
+
+```{r}
+usaldus.2 = usaldus %>%
+  dcast(variable ~ value, value.var="count")
+rownames(usaldus.2) = c("Enne", "Pärast")
+
+HH::likert(usaldus.2,
+       as.percent = TRUE,
+       ylab.right = "Kokku",
+       xlab="Osakaal",
+       main="E-valimiste usaldus",
+       sub="Likert skaala")
+```
+</div>
+
 # Korrelatsioon
 
 ### Paketid
