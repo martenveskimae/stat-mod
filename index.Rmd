@@ -1058,6 +1058,7 @@ library(ggthemes)
 
 ```{r}
 df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
 ```
 
 ## Tulpdiagramm
