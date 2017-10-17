@@ -1281,7 +1281,6 @@ HH::likert(usaldus.2,
 ```{r}
 library(tidyverse)
 library(psych)
-library(reshape2)
 library(ggthemes)
 ```
 
@@ -1294,7 +1293,7 @@ paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
 
 ## Korrelatsioon
 
-Vaatame kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni korrelatsiooni. Kuidas on seotud näiteks Reformierakonna toetus tööpuudusega, skp kasvuga ja inflatsiooniga?
+Vaatame kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni korrelatsiooni. Kuidas on seotud näiteks Reformierakonna toetus tööpuuduse, SKT kasvu ja inflatsiooniga?
 
 ```{r}
 ref = df %>%
@@ -1305,7 +1304,7 @@ ref = df %>%
 cor(ref)
 ```
 
-Korrelatsioonide statistilise olulisuse jaoks tuleks kasutada `corr.test(...)` funktsiooni paketis *psych*.
+Korrelatsioonide statistilise olulisuse jaoks tuleks kasutada `corr.test(...)` funktsiooni paketis **psych**.
 
 ```{r}
 corr.test(ref)
