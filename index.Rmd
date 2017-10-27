@@ -1281,6 +1281,8 @@ HH::likert(usaldus.2,
 ```{r}
 library(tidyverse)
 library(psych)
+library(PerformanceAnalytics)
+library(reshape2)
 library(ggthemes)
 ```
 
@@ -1291,9 +1293,72 @@ df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
 paneel = read.csv("https://martenveskimae.github.io/stat-mod/ep2014_paneel.csv")
 ```
 
-## Korrelatsioon
+## Pearsoni korrelatsioonikordaja
 
-Vaatame kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni korrelatsiooni. Kuidas on seotud näiteks Reformierakonna toetus tööpuuduse, SKT kasvu ja inflatsiooniga?
+Vaatame lähemalt kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni korrelatsiooni. Pearsoni korrelatsioon sobib juhul, kui mõlema tunnuse puhul on tegu arvtunnustega.
+
+<div class="tip">
+Pearsoni korrelatsioon on iseloomult lineaarne, st kahe tunnuse vahele üritatakse sobitada lineaarset seost. Matemaatiliselt on korrelatsioon kahe tunnuse kovariatsioon, skaleerituna nende standardhälbega:
+
+$\rho=\frac{\sum\limits_{i=1}^n(x_{i}-\bar{x})(y_{i}-\bar{y})}{(n-1)s_{x}s_{y}}$
+
+Et anda hinnang $\rho$ statistilisele olulisusele, võime teha t-testi, kus hindame $\rho$ erinevust nullist. T-skoori saamiseks:
+
+$t=\frac{r\sqrt{n-2}}{\sqrt{1-r^2}}$
+
+Arvutame käsitsi kahe juhusliku vektori korrelatsiooni (eeldatavalt on korrelatsioon juhuslikkuse tõttu 0). Esmalt tekitame kaks vektorit ning vaatame võimalikku visuaalselt.
+```{r}
+n = 100
+x = rnorm(n)
+y = rnorm(n)
+plot(x,y)
+```
+
+Kui kahe vektori vahel on tõepoolest seos, siis on see juhuslik. Hindame seost korrelatsiooni abil.
+```{r}
+xbar = mean(x)
+ybar = mean(y)
+sx = sd(x)
+sy = sd(y)
+
+rho = sum((x-xbar)*(y-ybar)) / ((n-1)*sx*sy)
+rho
+```
+
+Kas tulemus on statistiliselt oluline?
+
+```{r}
+t = (rho*sqrt(n-2)) / sqrt(1-rho^2) # t-väärtus
+p = 2*pt(-abs(t),df=199) # p-väärtus
+
+# Olulisuse visualiseerimine (sama, mis t-testi puhul)
+tdistx = seq(-3,3,length=300)
+tdisty = dt(tdistx,df=199)
+a95 = qt(c(.025, .975), df=199)
+ggplot() +
+  geom_line(aes(tdistx,tdisty)) +
+  geom_vline(xintercept = a95[1]) +
+  geom_vline(xintercept = a95[2]) +
+  geom_vline(xintercept = t, color="red") +
+  theme_bw()
+```
+
+Arvutuste tulemusel on:
+
+- korrelatsioon: `r rho`
+- t-skoor: `r t`
+- p-väärtus: `r p`
+
+Õnneks teeb kogu töö ära funktsioon `corr.test(...)` paketist **psych**:
+
+```{r}
+corr.test(cbind(x,y))
+```
+
+Tulemus on sama!
+</div>
+
+Majandusliku hääletamise teooriast teame, et hääletamine on tihti seotud majanduse käekäiguga - kui majandusel läheb hästi, on koalitsiooni toetus kõrge, kui halvasti, on opositsiooni toetus kõrge. Vaatame näiteks, kuidas on seotud Reformierakonna toetus tööpuuduse, SKT kasvu ja inflatsiooniga.
 
 ```{r}
 ref = df %>%
@@ -1310,15 +1375,35 @@ Korrelatsioonide statistilise olulisuse jaoks tuleks kasutada `corr.test(...)` f
 corr.test(ref)
 ```
 
-Vaikimisi annab antud funktsioon nii korrelatsioonimaatriksi kui p-väärtused. Kui soovida vaid ühte, tuleks käskluse lõppu lisada kas `$r` või `$p` korrelatsioonide või p-väärtuste saamiseks. Alati on mõistlik hinnata pilti graafiliselt hajuvusdiagrammidega.
+Vaikimisi annab antud funktsioon nii korrelatsioonimaatriksi kui p-väärtused. Kui soovida vaid ühte, tuleks käskluse lõppu lisada kas `$r` või `$p` korrelatsioonide või p-väärtuste saamiseks.
 
-**To do: korrelatsiooni joonis, spearmani korrelatsioon**
-```{r, include=FALSE}
-# corr.test(ref)$r %>%
-#   melt() %>%
-#   ggplot() +
-#   geom_tile(aes(Var1, Var2, fill=value)) +
-#   theme_bw()
+```{r}
+corr.test(ref)$r
+```
+
+Alati on mõistlik hinnata pilti graafiliselt. Korrelatsiooni puhul kasutatakse tihti spetsiaalseid korrelatsiooni visualiseeringuid, mida on keeruline **ggplotis** luua. Küll aga on mitmeid pakette, mis antud probleemi lahendavad. Näiteks võib kasutada funktsiooni `chart.Correlation(...)` paketist **PerformanceAnalytics**. 
+
+```{r}
+chart.Correlation(ref)
+```
+
+## Spearmani korrelatsioon
+
+Juhul, kui tunnused on järjestikused, on mõistlik kasutada Spearmani korrelatsiooni, mis ei kasuta korrelatsiooni arvutamiseks algtunnused, vaid annab neile astmeväärtuse (*rank*). Spearmani korrelatsiooni läbiviimiseks võib kasutada juba tuttavat EP 2014 valimiste andmestikku ning usalduse tunnuseid.
+
+```{r}
+usaldus = paneel %>%
+  mutate(enne = case_when(!(t1.evalimiste.usaldus %in% 97:98) ~ t1.evalimiste.usaldus),
+         parast = case_when(!(t2.evalimiste.usaldus %in% 97:98) ~ t2.evalimiste.usaldus)) %>%
+  select(enne,parast) %>%
+  na.omit()
+
+corr.test(usaldus, method="spearman")
+```
+
+
+```{r}
+chart.Correlation(usaldus, method="spearman")
 ```
 
 # Lineaarne regressioon
