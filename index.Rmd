@@ -1300,9 +1300,9 @@ Vaatame lähemalt kahe tunnuse vahelist korrelatsiooni, antud juhul Pearsoni kor
 <div class="tip">
 Pearsoni korrelatsioon on iseloomult lineaarne, st kahe tunnuse vahele üritatakse sobitada lineaarset seost. Matemaatiliselt on korrelatsioon kahe tunnuse kovariatsioon, skaleerituna nende standardhälbega:
 
-$\rho=\frac{\sum\limits_{i=1}^n(x_{i}-\bar{x})(y_{i}-\bar{y})}{(n-1)s_{x}s_{y}}$
+$r=\frac{\sum\limits_{i=1}^n(x_{i}-\bar{x})(y_{i}-\bar{y})}{(n-1)s_{x}s_{y}}$
 
-Et anda hinnang $\rho$ statistilisele olulisusele, võime teha t-testi, kus hindame $\rho$ erinevust nullist. T-skoori saamiseks:
+Et anda hinnang korrelatsioonikordaja statistilisele olulisusele, võime arvutada korrelatsiooni t-statistiku väärtuse ja võrrelda seda teoreetilise t-jaotusega.
 
 $t=\frac{r\sqrt{n-2}}{\sqrt{1-r^2}}$
 
@@ -1321,14 +1321,14 @@ ybar = mean(y)
 sx = sd(x)
 sy = sd(y)
 
-rho = sum((x-xbar)*(y-ybar)) / ((n-1)*sx*sy)
-rho
+r = sum((x-xbar)*(y-ybar)) / ((n-1)*sx*sy)
+r
 ```
 
 Kas tulemus on statistiliselt oluline?
 
 ```{r}
-t = (rho*sqrt(n-2)) / sqrt(1-rho^2) # t-väärtus
+t = (r*sqrt(n-2)) / sqrt(1-r^2) # t-väärtus
 p = 2*pt(-abs(t),df=199) # p-väärtus
 
 # Olulisuse visualiseerimine (sama, mis t-testi puhul)
@@ -1345,7 +1345,7 @@ ggplot() +
 
 Arvutuste tulemusel on:
 
-- korrelatsioon: `r rho`
+- korrelatsioon: `r r`
 - t-skoor: `r t`
 - p-väärtus: `r p`
 
