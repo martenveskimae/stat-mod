@@ -1282,7 +1282,6 @@ HH::likert(usaldus.2,
 library(tidyverse)
 library(psych)
 library(PerformanceAnalytics)
-library(reshape2)
 library(ggthemes)
 ```
 
