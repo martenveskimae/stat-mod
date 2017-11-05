@@ -98,6 +98,10 @@ Visualiseerimine:
 
 - <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">R Color Cheatsheet</a>
 
+Lineaarne regressioon: 
+
+- <a href="http://www.jakeruss.com/cheatsheets/stargazer/">Stargazer cheatsheet</a>
+
 Huvitavat:
 
 - <a href="https://www.youtube.com/watch?v=jk9S3RTAl38&ab_channel=StatisticalLearning">John Chambers, S-i looja (intervjuu)</a>
@@ -1406,4 +1410,132 @@ chart.Correlation(usaldus, method="spearman")
 ```
 
 # Lineaarne regressioon
+
+### Paketid
+
+```{r}
+library(tidyverse)
+```
+
+### Andmestik
+
+```{r}
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+```
+
+## Mudeli spetsifitseerimine R-is
+
+Mitmed mudelid R-is, sh lineaarse regressiooni mudel, küsivad sisendit valemi kujul. Meenutame näiteks lineaarse regressiooni valemit:
+
+$\hat{y} = \alpha + \beta X + \epsilon$
+
+kus:
+
+- $\hat{y}$ on ennustatav sõltuva tunnuse väärtus;
+- $\alpha$ on sõltuva tunnuse väärtus, kui sõltumatud tunnused on null. Tihti tähistatud ka kui $\beta_0$;
+- $\beta$ on sõltumatute tunnuste hinnanguline kordaja, teisisõnu hinnanguline mõju suurus;
+- $X$ on sõltumatud tunnused;
+- $\epsilon$ on viga, mida enamasti käsitletakse juhusliku "mürana" andmetes.
+
+Lineaarse regressiooni jooksutamiseks oleks vaja sisendiks anda nii y kui ka x tunnused, misjärel arvutatakse välja $\alpha$ ja $\beta$ väärtused.
+
+## Erakondade toetus ja makromajanduslikud näitajad
+
+Jätkame siinkohal korrelatsioonanalüüsis uuritud tunnustega - erakonna toetus ja töötus. Näitena kasutame taas Reformierakonda. Valemi kujul näeks meie mudel välja järgnev:
+
+$toetus_{ref} = \beta_0 + \beta_1 töötus + \epsilon$
+
+Mudeli spetsifitseerimisel näeks see välja `toetus ~ töötus`, kus `~` sümbol eristab sõltuvat ja sõltumatuid tunnuseid. Lineaarse regressiooni jooksutamiseks kasutame funktsiooni `lm(...)`, kuhu sisendiks läheb valem ning andmestiku nimetus (`data=...`).
+
+Filtreerime andmestikust Reformierakonnaga seotud vaatlused ning kasutame `support` ja `unemp` tunnuseid.
+
+```{r}
+ref = df %>% filter(party=="ref")
+
+ref_mudel = lm(support ~ unemp, data=ref)
+ref_mudel
+```
+
+Mudeli jooksutamisel kuvatakse $\beta_0$ (Intercept) ja $\beta_1$ (unemp), antud juhul väärtustega 0.273 ja 0.002. Kuna töötuse tunnus on andmestikus protsendina 0 ja 100 vahel ja erakonna toetus protsendina 0 ja 1 vahel, siis võib järeldada, et töötuse 1% suurenedes kasvab Reformierakonna toetus 0.2%. Arvestades, et Reformierakond on olnud pikalt valitsuses, siis läheb saadud tulemus eeldatud tulemusega vastuollu (võiks eeldada negatiivset seost - töötuse kasvades langeb valitseva erakonna toetus). Mudeliga tuleks seega veel tööd teha, ent esmalt uurime teisi mudeliga seotud statistikuid.
+
+```{r}
+summary(ref_mudel)
+```
+
+`summary(...)` funktsioon annab meile lisaks $\beta$ väärtuste standard vead ja p-väärtused, ning $R^2$ väärtused. Näeme, et töötuse tunnus ei ole statistiliselt oluline ($\beta_1$ ei erine oluliselt nullist) ning mudeli seletusvõime on vaid 1.5%. Ühtlasi näeme viimaselt realt, et kõiki sõltumatuid tunnuseid arvesse võttes pole mudel statistiliselt oluline (p-väärtus: 0.208). Kuna antud juhul kaasasime vaid ühe sõltumatu tunnuse, ei paku see uut teadmist, ent keerulisemate mudelite puhul, kus on mitmeid sõltumatuid tunnuseid, tasub seda jälgida.
+
+Tihti kasutatakse mudeli hindamiseks veel ruutkeskmist hälvet (*mean squared error* ehk MSE), mis väljendab, kui hästi suudab mudel ennustada sõltuva tunnuse väärtuseid. MSE leidmiseks tuleb lahutada õigetest väärtustest ennustatud väärtused (ehk arvutada ennustusjäägid), võtta need ruutu ning leida saadud jada keskmine. Seda on lihtne teha, kuivõrd mudel pakub ennustusjääke `$residuals` abil.
+
+```{r}
+mean(ref_mudel$residuals^2)
+```
+
+Kui soovime näha mudeli ennustatud väärtusi, siis on selleks funktsioon `predict(...)`, kuhu läheb argumendiks mudel ning soovi korral andmestik uute andmetega.
+
+```{r}
+yhat = predict(ref_mudel)
+head(yhat)
+```
+
+Sarnase mudeli võib teha ka teiste erakondade kohta. Võtame näiteks Keskerakonna.
+
+```{r}
+kesk = df %>% filter(party=="kesk")
+
+kesk_mudel = lm(support ~ unemp, data=kesk)
+summary(kesk_mudel)
+```
+
+Tulemus on suuresti sama.
+
+<div class="tip">
+Mudeli tulemuste mugavaks esitamiseks on loodud pakett **stargazer**. Stargazer võimaldab esitada nii lineaarse regressiooni kui mitmete teiste mudelite tulemusi kujul, mis on aktsepteeritav enamikes teadusajakirjades. Stargazeri võimalustega tutvumiseks saab infot järgnevalt lingilt: <a href="http://www.jakeruss.com/cheatsheets/stargazer/">Stargazer cheatsheet</a>.
+
+```{r,results="asis"}
+library(stargazer)
+stargazer(ref_mudel, kesk_mudel,
+          title="Linear regression table",
+          covariate.labels="Unemployment",
+          dep.var.labels="Support",
+          column.labels=c("Ref", "Kesk"),
+          model.numbers=F,
+          no.space=T,
+          star.cutoffs=c(0.05,0.01,0.001),
+          type="html")
+```
+</div>
+
+## Mitmene lineaarne regressioon
+
+Lineaarset regressiooni kasutades ei pea piirduma vaid ühe tunnuse lisamisega, vaid see võimaldab hinnata mitmeid tunnuseid korraga (oluline eelis t-testi ja korrelatsiooni ees). Lisame varasemale mudelile SKT kasvu ja inflatsiooni tunnused:
+
+$toetus_{ref} = \beta_0 + \beta_1 töötus + \beta_2 SKT + \beta_3 inflatsioon + \epsilon$
+
+mis näeks R-i valemina välja `support ~ unemp + gdpgr_yearly + inflats_m`.
+
+```{r}
+mlr_mudel = lm(support ~ unemp + gdpgr_yearly + inflats_m, data=ref)
+summary(mlr_mudel)
+```
+
+Tulemused näitavad, et SKT kasv ja inflatsioon on statistiliselt olulised. Samuti kasvas mudeli seletusvõime pea 20%ni (Adjusted R-squared) ning mudel ise on statistiliselt oluline.
+
+```{r}
+mean(mlr_mudel$residuals^2)
+```
+
+Mudeli ruutkeskmine hälve on samuti vähenenud võrreldes eelnevaga.
+
+Kui seni oleme uurinud vaid ühte erakonda korraga, siis võib ühe lisatunnusena kaasata mudelisse erakonna tunnuse. Kasutame selleks esialgset andmestikku.
+
+```{r}
+mlr_mudel_2 = lm(support ~ unemp + gdpgr_yearly + inflats_m + party, data=df)
+summary(mlr_mudel_2)
+mean(mlr_mudel_2$residuals^2)
+```
+
+Taaskord on mudeli parameetrid paranenud. Siiski ei võta mudel arvesse erinevaid võimalikke interaktsioone erakondade ja majandustunnuste vahel, mis muudab tulemuste tõlgendamise keeruliseks. Näiteks võib eeldada erinevaid efekte valitsuses olevate erakondade ja opositsiooni erakondade vahel, mis antud juhul jääb mudelist välja. Seega oleks mudelit vaja jätkuvalt arendada.
+
+## Mudeli hindamine
+
 # Logistiline regressioon
