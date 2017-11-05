@@ -1415,6 +1415,8 @@ chart.Correlation(usaldus, method="spearman")
 
 ```{r}
 library(tidyverse)
+library(ggthemes)
+library(reshape2)
 ```
 
 ### Andmestik
@@ -1463,6 +1465,81 @@ summary(ref_mudel)
 ```
 
 `summary(...)` funktsioon annab meile lisaks $\beta$ väärtuste standard vead ja p-väärtused, ning $R^2$ väärtused. Näeme, et töötuse tunnus ei ole statistiliselt oluline ($\beta_1$ ei erine oluliselt nullist) ning mudeli seletusvõime on vaid 1.5%. Ühtlasi näeme viimaselt realt, et kõiki sõltumatuid tunnuseid arvesse võttes pole mudel statistiliselt oluline (p-väärtus: 0.208). Kuna antud juhul kaasasime vaid ühe sõltumatu tunnuse, ei paku see uut teadmist, ent keerulisemate mudelite puhul, kus on mitmeid sõltumatuid tunnuseid, tasub seda jälgida.
+
+<div class="tip">
+Regressioonanalüüsis hinnatakse $\beta$ väärtuste statistilist olulisust t-testi abil, hinnates, kas väärtus on oluliselt erinev nullist. Sellest tulenevalt, mida lähemal on $\beta$ nullile, seda suurem kipub olema tema p-väärtus. Seega, väikeste $\beta$ väärtuste puhul tuleks pidada meeles, et statistiliselt olulise tulemuse saamise tõenäosus on madalam.
+
+Alljärgnevalt viime läbi sumulatsiooni ning uurime $\beta_0$ ja $\beta_1$ varieeruvust erinevate valimi suuruste puhul. Hindame seejuures tüüp I viga ning näeme, et see vastab valitud usaldusnivoole.
+
+Populatsiooni parameetrite suurusi võib muuta, et piltlikustada eelpool kirjeldatud nähtust.
+
+```{r}
+N = 100000          # Populatsiooni suurus
+n = 1000            # Valimi ülemine piir
+x = rnorm(N,50,15)  # X
+e = rnorm(N,0,10)   # Juhuslik viga
+b0 = 2.5            # beta 0
+b1 = 5              # beta 1
+y = b0 + (b1*x) + e # Y
+
+# Loome andmetabeli x ja y väärtustega
+pop = data.frame(x = x, y = y)
+
+# Loome funktsiooni, mis väljastab regressiooni tulemused vastavalt valimi suurusele
+reg = function(data,n){
+  df = data[sample(1:nrow(data), n),]
+  m = lm(y~x,data=df)
+  data.frame(b0 = m$coefficients[[1]],
+             b0l = confint(m)[1,1],
+             b0u = confint(m)[1,2],
+             b0p = summary(m)$coefficients[,4][[1]],
+             b0se = summary(m)$coefficients[,2][[1]],
+             b1 = m$coefficients[[2]],
+             b1l = confint(m)[2,1],
+             b1u = confint(m)[2,2],
+             b1p = summary(m)$coefficients[,4][[2]],
+             b1se = summary(m)$coefficients[,2][[2]],
+             n=n)
+}
+
+# Jooksutame regressiooni erinevate valimi suurustega
+r = lapply(10:n,function(x)reg(pop,x)) %>% do.call(rbind.data.frame,.)
+
+# Hindame, kas saadud tulemustes esines tüüp I viga (false positive)
+b0_pop = reg(pop,N)$b0
+b1_pop = reg(pop,N)$b1
+
+r = r %>%
+  mutate(b0_typeI = ifelse((b0l > b0_pop | b0u < b0_pop) & b0p <= .05, TRUE, FALSE),
+         b1_typeI = ifelse((b1l > b1_pop | b1u < b1_pop) & b1p <= .05, TRUE, FALSE))
+
+# Graafime tulemused
+r %>%
+  select(n,b0_typeI,b1_typeI,b0,b1) %>%
+  melt(c("n","b0_typeI","b1_typeI")) %>%
+  melt(c("n","variable","value"),variable.name="TF",value.name="type_I") %>%
+  ggplot() +
+  geom_point(aes(n,value,color=type_I),shape=1,alpha=.5) +
+  geom_hline(data=data.frame(variable=c("b0","b1"),
+                             value=c(b0_pop,b1_pop)),
+             aes(yintercept=value)) +
+  scale_color_manual(values=c("steelblue","red")) +
+  facet_wrap(~variable) +
+  theme_bw()
+
+r %>%
+  ggplot() +
+  geom_point(aes(n,b0p,color=b0_typeI),shape=1) +
+  geom_hline(yintercept=0.05) +
+  scale_color_manual(values=c("steelblue","red")) +
+  theme_bw()
+
+# Arvutame, mitmel protsendil juhtudest esines tüüp I viga (eeldada võiks ligemale 5%)
+sum(r$b0_typeI==TRUE)/nrow(r)
+sum(r$b1_typeI==TRUE)/nrow(r)
+```
+
+</div>
 
 Tihti kasutatakse mudeli hindamiseks veel ruutkeskmist hälvet (*mean squared error* ehk MSE), mis väljendab, kui hästi suudab mudel ennustada sõltuva tunnuse väärtuseid. MSE leidmiseks tuleb lahutada õigetest väärtustest ennustatud väärtused (ehk arvutada ennustusjäägid), võtta need ruutu ning leida saadud jada keskmine. Seda on lihtne teha, kuivõrd mudel pakub ennustusjääke `$residuals` abil.
 
@@ -1537,5 +1614,11 @@ mean(mlr_mudel_2$residuals^2)
 Taaskord on mudeli parameetrid paranenud. Siiski ei võta mudel arvesse erinevaid võimalikke interaktsioone erakondade ja majandustunnuste vahel, mis muudab tulemuste tõlgendamise keeruliseks. Näiteks võib eeldada erinevaid efekte valitsuses olevate erakondade ja opositsiooni erakondade vahel, mis antud juhul jääb mudelist välja. Seega oleks mudelit vaja jätkuvalt arendada.
 
 ## Mudeli hindamine
+
+**Vajab tegemist**
+```{r}
+plot(mlr_mudel_2)[1]
+```
+
 
 # Logistiline regressioon
