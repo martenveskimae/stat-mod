@@ -1,0 +1,84 @@
+---
+title: "Erakondade toetused"
+author: "Märten Veskimäe"
+date: "6. november 2017"
+output:
+  word_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, # T kui soovite R-i koodi kuvada, F kui soovite varjata
+                      warning = F,
+                      message = F,
+                      comment = NA,
+                      fig.align="center",
+                      dev = "pdf") # piltide formaat. pdf näeb parem välja, aga võib rohkem ruumi võtta
+```
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(reshape2)
+
+df = read.csv("https://martenveskimae.github.io/stat-mod/party_dataset.csv")
+```
+
+# Sissejuhatus
+
+Töö eesmärk on anda ülevaade Eestis tegutsevate erakondade toetusest läbi aja. Analüüsi on kaasatud järgnevad erakonnad: 
+
+# Andmete kirjeldus
+```{r}
+erakonnad = df %>%
+  group_by(Erakonnad = party) %>%
+  summarize(Arv = n())
+
+library(knitr)
+kable(erakonnad, format="markdown", caption="Analüüsi kaasatud erakonnad")
+```
+
+Erakonna toetused varieerusid palju, nagu allolevalt jooniselt näha.
+
+```{r}
+keskmised = df %>%
+  group_by(party) %>%
+  summarise(keskmine = mean(support, na.rm=T),
+            s.ylemine = keskmine + sd(support, na.rm=T),
+            s.alumine = keskmine - sd(support, na.rm=T)) %>%
+  melt("party",c("keskmine", "s.ylemine", "s.alumine"), "Varieeruvus")
+
+df %>%
+  ggplot() +
+  geom_line(aes(as.Date(date), support)) +
+  geom_hline(data=keskmised,aes(yintercept=value, linetype=Varieeruvus, color=Varieeruvus)) +
+  facet_wrap(~party) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x="") +
+  theme_bw()
+```
+
+
+### Keskerakond
+
+```{r}
+keskmised = df %>%
+  group_by(party, support) %>%
+  summarise(n = n()) %>%
+  na.omit() %>%
+  group_by(party) %>%
+  summarise(keskmine = mean(support),
+            mediaan = median(support),
+            mood = support[n==max(n)][1])
+```
+
+Keskerakonna keskmine toetus oli antud perioodil `r round(keskmised$keskmine[keskmised$party=="kesk"],2)` ja mediaan oli `r round(keskmised$mediaan[keskmised$party=="kesk"],2)`.
+
+### IRL
+
+IRLi keskmine toetus oli antud perioodil `r round(keskmised$keskmine[keskmised$party=="irl"],2)` ja mediaan oli `r round(keskmised$mediaan[keskmised$party=="irl"],2)`.
+
+
+
+
