@@ -1594,37 +1594,102 @@ Lineaarset regressiooni kasutades ei pea piirduma vaid ühe tunnuse lisamisega, 
 
 $toetus_{ref} = \beta_0 + \beta_1 töötus + \beta_2 SKT + \beta_3 inflatsioon + \epsilon$
 
-mis näeks R-i valemina välja `support ~ unemp + gdpgr_yearly + inflats_m`.
+mis näeks R-i valemina välja `support ~ unemp + gdpgr_yearly + inflats_m`. Lihtsustamise mõttes piirame vaatlused eelviimase valitsustsükliga, et kontrollida koalitsiooni/opositsiooni mõju ning jooksutame uue mudeli lisatunnustega.
 
 ```{r}
+ref = ref %>% filter(year>=2011, year<2015)
+  
 mlr_mudel = lm(support ~ unemp + gdpgr_yearly + inflats_a, data=ref)
 summary(mlr_mudel)
 ```
 
-Tulemused näitavad, et SKT kasv ja inflatsioon on statistiliselt olulised. Samuti kasvas mudeli seletusvõime 27%ni (*Adjusted R-squared*) ning mudel ise on statistiliselt oluline.
+Tulemused näitavad, et SKT kasv on statistiliselt oluline ning märkimisväärse mõjuga. Samuti kasvas mudeli seletusvõime 46%ni (*Adjusted R-squared*) ning mudel ise on statistiliselt oluline.
 
 ```{r}
 mean(mlr_mudel$residuals^2)
 ```
 
-Mudeli ruutkeskmine hälve on samuti vähenenud võrreldes eelnevaga.
+Mudeli ruutkeskmine hälve on samuti oluliselt vähenenud võrreldes eelnevaga.
 
-Kui seni oleme uurinud vaid ühte erakonda korraga, siis võib ühe lisatunnusena kaasata mudelisse erakonna tunnuse. Kasutame selleks esialgset andmestikku.
+Kui võtta eesmärgiks saada võimalikult hea mudeli sobivus, võib kaaluda sõltumatute tunnuste transformeerimist, eeldusel, et see on teoreetiliselt põhjendatud. Seega tuleks küsida, milline funktsionaalne vorm võiks antud sõltumatutel tunnustel peale lineaarse vormi olla. Visualiseerime seosed.
 
 ```{r}
-mlr_mudel_2 = lm(support ~ unemp + gdpgr_yearly + inflats_a + party, data=df)
-summary(mlr_mudel_2)
-mean(mlr_mudel_2$residuals^2)
+ref %>%
+  melt("support",c("unemp","gdpgr_yearly","inflats_a")) %>%
+  ggplot() +
+  geom_point(aes(value,support)) +
+  coord_fixed() +
+  facet_wrap(~variable,scales="free",ncol=2)
 ```
 
-Taaskord on mudeli parameetrid paranenud. Siiski ei võta mudel arvesse erinevaid võimalikke interaktsioone erakondade ja majandustunnuste vahel, mis muudab tulemuste tõlgendamise keeruliseks. Näiteks võib eeldada erinevaid efekte valitsuses olevate erakondade ja opositsiooni erakondade vahel, mis antud juhul jääb mudelist välja. Seega oleks mudelit vaja jätkuvalt arendada.
+Antud juhul võib jätta töötuse lineaarseks, SKT kasvu puhul katsetada logaritmimist ning inflatsiooni puhul kasutada ruutseost. Loome uued transformeeritud tunnused, ning vaatame, kas seos erakonna toetusega on muutunud lineaarsemaks.
+
+
+```{r}
+ref = ref %>%
+  mutate(gdpgr_yearly_log = log(gdpgr_yearly),
+         inflats_a_squared = inflats_a^2)
+
+ref %>%
+  melt("support",c("unemp","gdpgr_yearly_log","inflats_a_squared")) %>%
+  ggplot() +
+  geom_point(aes(value,support)) +
+  coord_fixed() +
+  facet_wrap(~variable,scales="free",ncol=2)
+```
+
+Tundub, et on olnud abi ning võime teha uue mudeli transformeeritud tunnustega.
+
+```{r}
+mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + inflats_a + inflats_a_squared, data=ref)
+summary(mlr_mudel_tr)
+mean(mlr_mudel_tr$residuals^2)
+```
+
+Mudeli parameetrites on näha väikest arengut. Edasi tuleks anda põhjalikum hinnang mudeli toimimisele.
 
 ## Mudeli hindamine
 
-**Vajab tegemist**
+Kõige kiirema ülevaate võimalikest probleemidest saab ennustusjääkide visualiseerimisel.
 ```{r}
-plot(mlr_mudel_2)
+plot(mlr_mudel_tr, which=1) # Rohkem joonised ennustusjääkidest saab jättes 'which' täpsustamata
 ```
 
+Ennustusjääkide puhul soovime näha, et need oleksid jaotunud ühtlase hajususega ümber nulli. Antud juhul on näha, et ennustusjäägid on siiski teatud määral süstemaatiliselt kaldu, mis viitab probleemidele mudeli funktsionaalses vormis. Samas heteroskedastiivsust ei paista eriti olevat.
+
+<div class="tip">
+Mudeli funktsionaalse vormi hindamiseks kasutatakse tihti Ramsey RESET-testi, mis lisab mudelile regressorite ruutseosed ning hindab, kas see on algmudelist parem. Kasutame selleks funktsiooni `resettest(...)` paketist **lmtest**.
+```{r}
+library(lmtest)
+resettest(mlr_mudel, power=2, type="fitted")
+resettest(mlr_mudel_tr, power=2, type="fitted")
+```
+Antud juhul viitavad tulemused, et ilma transformeeritud tunnusteta mudelil oli halvem funktsionaalne vorm kui transformeeritud tunnustega mudelil. Transformeeritud tunnustega mudel ei muutu oluliselt paremaks, kui lisada ruutseostega tunnused. Samas võib RESET testi tulemus olla oluline kuupseoste (argument `power=2:3`) korral, kuivõrd visuaalselt oli näha ennustusjääkide teatud süstemaatilist kõikumist ümber nulli.
+
+Heteroskedastiivsuse hindamiseks on populaarsemad White test ja Breusch-Pagan test, millest võib antud juhul katsetada viimasega. Breusch-Pagani testi puhul sobitatakse uus mudel algmudeli ennustusjääkidele ning hinnatakse, kas sealt ilmnevad olulised seosed. **lmtest** paketist on selleks funktsioon `bptest(...)`.
+```{r}
+bptest(mlr_mudel_tr)
+```
+
+Kuna antud juhul osutus test statistiliselt ebaoluliseks, võib järeldada, et heteroskedastiivsusega olulisi probleeme pole.
+</div>
+
+Viimaks võime kontrollida, ega uute tunnuste lisamisel pole mudelis ilmnenud multikollineaarsust (sõltumatud tunnused on omavahel tugevas korrelatsioonis, mistõttu pole hinnatud parameetrid enam usaldatavad). Multikollineaarsus ilmneb tõenäoliselt juhul, kui sõltumatute tunnuste omavaheline korrelatsioon ületab sõltumatute ja sõltuva tunnuse korrelatsiooni.
+
+Regressioonanalüüsi korral on selle hindamiseks kasutusel VIF (*Variance Inflation Factor*) test. VIF test hindab, kui suur oli sõltumatu tunnuse $\beta_k$ variatsioon teiste sõltumatute tunnuste kontekstis ($Var(\beta_k)$) ja kui suur isoleeritult ($Var_{min}(\beta_k)$. Seejärel jagab ta esimese teisega $\frac{Var(\beta_k)}{Var_{min}(\beta_k)} = \frac{1}{1-R_k^2}$
+
+Üldjuhul leitakse, et kui tulemus on üle kümne, võib mudelis esineda multikollineaarsuse probleem. VIF testi funktsiooni `vif(...)` saame paketist **HH**. Kuna **HH** paketi laadimisel tekiks konflikt **tidyverse** `select(...)` funktsiooniga, siis jätame HH eraldi laadimata, ning kasutame sealt vaid soovitud funktsiooni.
+
+```{r}
+HH::vif(mlr_mudel_tr)
+```
+
+Antud mudeli puhul on probeelm inflatsiooni ja inflatsioon ruudus tunnustega, mis on samas ootuspärane tulemus (võimegi eeldada tugevat seost antud kahe tunnuse vahel)
+
+```{r}
+HH::vif(mlr_mudel)
+```
+
+Transformeerimata tunnustega mudelis sellist probleemi ei esinenud ning ilmselt oleksid selle tulemused kokkuvõttes usaldusväärsemad.
 
 # Logistiline regressioon
