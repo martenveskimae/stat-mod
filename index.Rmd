@@ -1641,7 +1641,7 @@ ref %>%
 Tundub, et on olnud abi ning võime teha uue mudeli transformeeritud tunnustega.
 
 ```{r}
-mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + inflats_a + inflats_a_squared, data=ref)
+mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + inflats_a_squared, data=ref)
 summary(mlr_mudel_tr)
 mean(mlr_mudel_tr$residuals^2)
 ```
@@ -1674,11 +1674,11 @@ bptest(mlr_mudel_tr)
 Kuna antud juhul osutus test statistiliselt ebaoluliseks, võib järeldada, et heteroskedastiivsusega olulisi probleeme pole.
 </div>
 
-Viimaks võime kontrollida, ega uute tunnuste lisamisel pole mudelis ilmnenud multikollineaarsust (sõltumatud tunnused on omavahel tugevas korrelatsioonis, mistõttu pole hinnatud parameetrid enam usaldatavad). Multikollineaarsus ilmneb tõenäoliselt juhul, kui sõltumatute tunnuste omavaheline korrelatsioon ületab sõltumatute ja sõltuva tunnuse korrelatsiooni.
+Viimaks võime kontrollida, ega uute tunnuste lisamisel pole mudelis ilmnenud multikollineaarsust. Multikollineaarsuse korral on sõltumatud tunnused on omavahel tugevas korrelatsioonis, mistõttu on raske eristada üksikute tunnuste mõju (korrelatsioonist tingituna, kui üks väärtus kasvab, kasvavad ka teised väärtused ning üksikud mõjud pole enam eristatavad). Sellest tulenevalt pole hinnatud parameetrid ($\beta$ väärtused) enam usaldatavad. Kuigi teatud korrelatsioon esineb tunnuste vahel peaaegu alati, on oluline, et sõltumatute tunnuste omavaheline korrelatsioon ei ületaks sõltumatu ja sõltuva tunnuse korrelatsiooni.
 
-Regressioonanalüüsi korral on selle hindamiseks kasutusel VIF (*Variance Inflation Factor*) test. VIF test hindab, kui suur oli sõltumatu tunnuse $\beta_k$ variatsioon teiste sõltumatute tunnuste kontekstis ($Var(\beta_k)$) ja kui suur isoleeritult ($Var_{min}(\beta_k)$. Seejärel jagab ta esimese teisega $\frac{Var(\beta_k)}{Var_{min}(\beta_k)} = \frac{1}{1-R_k^2}$
+Regressioonanalüüsi korral on multikollineaarsuse hindamiseks kasutusel VIF (*Variance Inflation Factor*) test. VIF test hindab, kui suur oli sõltumatu tunnuse $\beta_k$ variatsioon teiste sõltumatute tunnuste kontekstis ($Var(\beta_k)$) ja kui suur isoleeritult ($Var_{min}(\beta_k)$). Seejärel jagab ta esimese teisega $\frac{Var(\beta_k)}{Var_{min}(\beta_k)} = \frac{1}{1-R_k^2}$. Üldjuhul leitakse, et kui tulemus on üle kümne, võib mudelis esineda multikollineaarsuse probleem.
 
-Üldjuhul leitakse, et kui tulemus on üle kümne, võib mudelis esineda multikollineaarsuse probleem. VIF testi funktsiooni `vif(...)` saame paketist **HH**. Kuna **HH** paketi laadimisel tekiks konflikt **tidyverse** `select(...)` funktsiooniga, siis jätame HH eraldi laadimata, ning kasutame sealt vaid soovitud funktsiooni.
+VIF testi funktsiooni `vif(...)` saame paketist **HH**. Kuna **HH** ja **tidyiverse** pakettides on osa funktsioone sama nimega, siis ei hakka praegu **HH-d** eraldi aktiveerima, vaid rakendame sealt ainult hetkel soovitud `vif` funktsiooni.
 
 ```{r}
 HH::vif(mlr_mudel_tr)
