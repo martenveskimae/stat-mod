@@ -1641,7 +1641,7 @@ ref %>%
 Tundub, et on olnud abi ning võime teha uue mudeli transformeeritud tunnustega.
 
 ```{r}
-mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + inflats_a_squared, data=ref)
+mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + + inflats_a + inflats_a_squared, data=ref)
 summary(mlr_mudel_tr)
 mean(mlr_mudel_tr$residuals^2)
 ```
