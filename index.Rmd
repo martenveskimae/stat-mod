@@ -46,7 +46,6 @@ Sys.setlocale("LC_ALL", "UTF-8")
 
 ```{r}
 library(tidyverse)
-library(ggthemes)
 ```
 
 ## Taustaks
@@ -101,6 +100,11 @@ Visualiseerimine:
 Lineaarne regressioon: 
 
 - <a href="http://www.jakeruss.com/cheatsheets/stargazer/">Stargazer cheatsheet</a>
+
+Logistiline regressioon:
+
+- <a href="https://en.wikipedia.org/wiki/Exponential_family">Eksponentide perekond</a>
+- <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>
 
 Huvitavat:
 
@@ -398,10 +402,8 @@ Operaator   | Tulemus
 Näiteid: <a href="https://www.tutorialspoint.com/r/r_operators.htm">R - Operators</a>
 </div>
 
-Kujunduse kiireks muutmiseks on erinevad valmislahendused, mis on kättesaadavad **ggthemes** paketiga.
+Kujunduse kiireks muutmiseks on erinevad valmislahendused, algusega `theme_`.
 ```{r}
-library(ggthemes)
-
 df %>%
   filter(party=="ref") %>%
   ggplot() +
@@ -417,7 +419,6 @@ df %>%
 
 ```{r}
 library(tidyverse)
-library(ggthemes)
 library(e1071)
 library(reshape2)
 ```
@@ -572,7 +573,6 @@ df %>%
 
 ```{r}
 library(tidyverse)
-library(ggthemes)
 library(reshape2)
 ```
 
@@ -742,7 +742,6 @@ sim %>%
 ```{r}
 library(tidyverse)
 library(effsize)
-library(ggthemes)
 ```
 
 ### Andmestik
@@ -1055,7 +1054,6 @@ df %>%
 
 ```{r}
 library(tidyverse)
-library(ggthemes)
 ```
 
 ### Andmestik
@@ -1286,7 +1284,6 @@ HH::likert(usaldus.2,
 library(tidyverse)
 library(psych)
 library(PerformanceAnalytics)
-library(ggthemes)
 ```
 
 ### Andmestik
@@ -1415,7 +1412,6 @@ chart.Correlation(usaldus, method="spearman")
 
 ```{r}
 library(tidyverse)
-library(ggthemes)
 library(reshape2)
 ```
 
@@ -1641,7 +1637,7 @@ ref %>%
 Tundub, et on olnud abi ning võime teha uue mudeli transformeeritud tunnustega.
 
 ```{r}
-mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + + inflats_a + inflats_a_squared, data=ref)
+mlr_mudel_tr = lm(support ~ unemp + gdpgr_yearly_log + inflats_a + inflats_a_squared, data=ref)
 summary(mlr_mudel_tr)
 mean(mlr_mudel_tr$residuals^2)
 ```
@@ -1693,3 +1689,151 @@ HH::vif(mlr_mudel)
 Transformeerimata tunnustega mudelis sellist probleemi ei esinenud ning ilmselt oleksid selle tulemused kokkuvõttes usaldusväärsemad.
 
 # Logistiline regressioon
+
+### Paketid
+
+```{r}
+library(tidyverse)
+library(stargazer)
+library(caret)
+```
+
+### Andmestik
+
+```{r}
+RK_2015 = read.csv("https://martenveskimae.github.io/stat-mod/RK_2015.csv")
+```
+
+## Üldistatud lineaarne mudel (*generalized linear model*)
+
+Eelnevalt käsitletud lineaarse regressiooni mudeli üheks peamiseks eelduseks oli, et ennustusjäägid peavad olema normaaljaotuslikud. Tuleb aga välja, et taolist lineaarset mudelit on võimalik üldistada ning eeldada seejuures väga erinevate jaotustega ennustusjääke (ennustusjäägid peavad olema <a href="https://en.wikipedia.org/wiki/Exponential_family">eksponentide perekonnast</a>). See võimaldab ühe tüüpmudeli abil modelleerida näiteks pidevtunnustega andmeid (normaaljaotus), loendusandmeid (Poissooni jaotus), eksponentseoseid, kui ka binaarseid andmeid (Bernoulli jaotus). Mudeli funktsionaalne vorm on järgnev:
+
+$E(y)=g^{-1}(X\beta)$
+
+kus:
+
+- $E(y)$ on keskmine sõltuvtunnuse väärtus sõltuvalt $X$ väärtustest;
+- $X\beta$ X on sõltumatud tunnused korrutatuna hinnatava parameetriga $\beta$;
+- $g$ on tõenäosuse funktsioon, mille abil seotakse keskmine sõltuvtunnuse väärtus sõltumatute tunnustega $X\beta$ (*link function*)
+
+Antud juhul keskendume jah/ei jaotusele ehk Bernoulli jaotusele, kus
+
+$g(\mu) = X\beta = ln\big(\frac{\mu}{1-\mu}\big)$ ja
+
+$\mu = \frac{1}{1+exp(-X\beta)}$
+
+<div class="tip">
+Logistiline regressioon on olemuselt lineaarne klassifikaator, st ta sobitab kahe klassi vahele lineaarse eralduspiiri. Selle visualiseerimiseks võib teha simulatsiooni, kus võrdleme logistilist regressiooni mõne tuntuma mitte-lineaarse klassifikaatoriga (juhumets ehk *random forest* ja tugivektormasin ehk *support vector machine*).
+
+```{r}
+library(randomForest)
+library(e1071)
+
+cos_func = function(x,y){
+  set.seed(200212)
+  x > y + cos(x)*rnorm(1,0,2)
+}
+pr = function(x) predict(x,test) %>% as.numeric() -1
+
+data = expand.grid(x=seq(0,10,.25),
+                   y=seq(0,10,.25)) %>%
+  mutate(label = cos_func(x,y))
+
+log_fit = glm(label~.,data=data,family=binomial,control=glm.control(maxit=20))
+rf_fit = randomForest(label~.,data=data,mtry=2)
+svm_fit = svm(factor(label)~.,data=data,kernel="radial",probability=T,cost=5)
+  
+data %>%
+  mutate(logit_preds = predict(log_fit,data,"response")>.5,
+         rf_preds = predict(rf_fit,data,"response")>.5,
+         svm_preds = predict(svm_fit,data)) %>%
+  reshape2::melt(c("x","y")) %>%
+  ggplot() +
+  geom_point(aes(x,y,color=value)) +
+  coord_fixed() +
+  facet_wrap(~variable) +
+  theme_bw()
+```
+
+</div>
+
+## Valimisosaluse analüüsimine
+
+Valimisosalust mõõdetakse indiviiditasandil enamasti binaarsel kujul - kas vastaja hääletas või mitte. Kui soovime seda modelleerida, siis saame arvutada küsitlusele vastaja tõenäosuse (0-1) kuuluda kas ühte või teise rühma.
+
+Valimisosaluse analüüsiks võtame ette 2015. aasta Riigikogu valimiste küsitluse ning püüame ennustada inimeste valimisosalust sotsiaal-demograafiliste tunnuste abil. Järjestame esmalt ordinaalsed tunnused ja tutvume andmestikuga.
+
+```{r}
+palgad = c("Alla 200 €","200–275 €","276–350 €","351–425 €","426–500 €","501–575 €",
+           "576–700 €","701–1000 €","1001–1300 €","1301–1600 €","1601–1900 €",
+           "1901–2200 €","2201–2500 €","Üle 2500 €")
+haridus = c("Põhiharidus","Keskharidus","Kõrgharidus")
+RK_2015$wage = factor(RK_2015$wage,levels=palgad)
+RK_2015$education = factor(RK_2015$education,levels=haridus)
+
+summary(RK_2015)
+```
+
+Sõltuvtunnus on antud hetkel `vote`, mille puhul näeme, et 646 küsitletutest hääletas ja 150 ei hääletanud. Viime läbi logistilise regressiooni kõikide andmestikus kaasatud tunnustega. Logistilise regressiooni jaoks kasutame funktsiooni `glm(...)`, kus tuleb lisaks valemile ja andmestikule märkida ennustusjääkide perekond `family=binominal`.
+
+```{r}
+f = formula(vote ~ age + I(age^2) + gender + education + ethnicity + as.numeric(wage))
+osalus_mudel = glm(f, data= RK_2015, family=binomial)
+summary(osalus_mudel)
+```
+
+Et saada kätte lihtsamini tõlgendatavad šansside suhted, tuleb $\beta$ väärtused eksponentida. $\beta$ väärtused saame funktsiooniga `coef()` ning eksponendid `exp(...)`.
+
+```{r}
+(or = exp(coef(osalus_mudel)))
+```
+
+Šansside suhet ei saa siiski lineaarselt tõlgendada, sest konkreetne šansi suurus sõltub X väärtustest. Üks viis, kuidas kõikide X peale keskmist mõju suurust väljendada, on leida keskmine marginaalefekt. Selleks tuleb leida esmalt keskmine logaritm-suhte tihedus ning korrutada see koefitsientide suurustega. Kui see tundub praegu keeruline, siis antud hetkel ei olegi tarvis seda mõista. Huvi korral võib alustada tõenäosuse ja logaritm-suhte uurimist siit: <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>.
+
+```{r}
+(ame = mean(dlogis(predict(osalus_mudel, type="link"))) * coef(osalus_mudel))
+```
+
+Kui šansside suhet võis mõista "kui palju kasvab sündmuse šanss ($\frac{y=1}{y=0}$) X-i kasvades ühe võrra" (mitte segi ajada riskisuhtega ($\frac{y=1}{y}$)!), siis keskmine marginaalefekt tähistab regressiooni joone keskmist kallakut.
+
+Kuvame kõik leitud väärtused ühes tabelis kasutades selleks **stargazerit**.
+
+```{r}
+stargazer(osalus_mudel,osalus_mudel,osalus_mudel,
+          dep.var.labels = "Hääletas valimistel",
+          column.labels = c("Beta koefitsiendid",
+                            "Šansside suhe",
+                            "Keskmine marginaalefekt"),
+          dep.var.caption = "",
+          coef = list(NULL, or, ame),
+          type="text")
+```
+
+Arvutame viimaks McFaddeni pseudo R-ruudu suuruse. Arvestada tuleks, et erinevalt lineaarse regressiooni R-ruudust, on antud pseudo R-ruudu suurus alati madalam (0.2-0.4 on juba hea tulemus).
+
+$R^2=1-\frac{logLik_{mod}}{logLik_{null}}$
+
+```{r}
+1 - osalus_mudel$deviance / osalus_mudel$null.deviance
+```
+
+<div class="tip">
+Meenutame, et andmestikus on hääletanuid oluliselt rohkem kui mittehääletanuid. Mudelit saaks seega oluliselt parandada tasakaalustatud andmestikuga. Kasutame selleks paketti **ROSE** ja funktsiooni `ovun.sample(...)`.
+
+```{r}
+library(ROSE)
+over = ovun.sample(vote~.,data=RK_2015,method="over",N=1292)$data
+under = ovun.sample(vote~.,data=RK_2015,method="under",N=300)$data
+both = ovun.sample(vote~.,data=RK_2015,method="both",p=.5,N=nrow(RK_2015))$data
+
+osalus_over = glm(f, data=over, family=binomial)
+osalus_under = glm(f, data=under, family=binomial)
+osalus_both = glm(f, data=both, family=binomial)
+
+1 - osalus_over$deviance / osalus_over$null.deviance
+1 - osalus_under$deviance / osalus_under$null.deviance
+1 - osalus_both$deviance / osalus_both$null.deviance
+```
+
+Hea. Pseudo R-ruut tõusis tasakaalustatud andmetega mõne protsendi võrra.
+</div>
