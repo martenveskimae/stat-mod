@@ -3,12 +3,13 @@ title: "Statistiline modelleerimine 2017"
 date: "`r format(Sys.time(), '%d-%m-%Y')`"
 author: "Märten Veskimäe & Mihkel Solvak"
 output:
-  prettydoc::html_pretty:
-    theme: cayman
+  html_document:
+  # prettydoc::html_pretty:
+  #   theme: cayman
     toc: true
     toc_depth: 2
-    # toc_float: true
-    # code_folding: show
+    toc_float: true
+    code_folding: show
     number_sections: true
 ---
 
@@ -104,6 +105,7 @@ Lineaarne regressioon:
 Logistiline regressioon:
 
 - <a href="https://en.wikipedia.org/wiki/Exponential_family">Eksponentide perekond</a>
+- <a href="https://cran.r-project.org/web/packages/interplot/vignettes/interplot-vignette.html">interplot: Plot the Effects of Variables in Interaction Terms</a>
 - <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>
 
 Huvitavat:
@@ -1695,6 +1697,7 @@ Transformeerimata tunnustega mudelis sellist probleemi ei esinenud ning ilmselt 
 ```{r}
 library(tidyverse)
 library(stargazer)
+library(ResourceSelection)
 library(caret)
 ```
 
@@ -1782,6 +1785,18 @@ osalus_mudel = glm(f, data= RK_2015, family=binomial)
 summary(osalus_mudel)
 ```
 
+<div class="tip">
+
+Kuidas visualiseerida interaktsioonide marginaalefektie (ehk *tingimuslik tõenäosus*)? Sellist võimalust pakub funktsioon `interplot(...)` paketist **interplot**.
+
+```{r}
+library(interplot)
+interplot(osalus_mudel, var1 = "age", var2 = "age") +
+  theme_bw()
+```
+
+Rohkem võimalusi **interploti** kohta leiab siit: <a href="https://cran.r-project.org/web/packages/interplot/vignettes/interplot-vignette.html">interplot: Plot the Effects of Variables in Interaction Terms</a>
+</div>
 Et saada kätte lihtsamini tõlgendatavad šansside suhted, tuleb $\beta$ väärtused eksponentida. $\beta$ väärtused saame funktsiooniga `coef()` ning eksponendid `exp(...)`.
 
 ```{r}
@@ -1798,7 +1813,7 @@ Kui šansside suhet võis mõista "kui palju kasvab sündmuse šanss ($\frac{y=1
 
 Kuvame kõik leitud väärtused ühes tabelis kasutades selleks **stargazerit**.
 
-```{r}
+```{r, results="asis"}
 stargazer(osalus_mudel,osalus_mudel,osalus_mudel,
           dep.var.labels = "Hääletas valimistel",
           column.labels = c("Beta koefitsiendid",
@@ -1806,7 +1821,7 @@ stargazer(osalus_mudel,osalus_mudel,osalus_mudel,
                             "Keskmine marginaalefekt"),
           dep.var.caption = "",
           coef = list(NULL, or, ame),
-          type="text")
+          type="html")
 ```
 
 Arvutame viimaks McFaddeni pseudo R-ruudu suuruse. Arvestada tuleks, et erinevalt lineaarse regressiooni R-ruudust, on antud pseudo R-ruudu suurus alati madalam (0.2-0.4 on juba hea tulemus).
@@ -1840,6 +1855,20 @@ Hea. Pseudo R-ruut tõusis tasakaalustatud andmetega mõne protsendi võrra.
 
 ## Mudeli hindamine
 
+### Mudeli olulisus
+
+- $\chi^2$ test
+
+$\chi^2$ test kontrollib, kas testidu mudel on oluliselt parem tühjast mudelist.
+
+- Hosmer \& Lemeshow test
+
+H\&L test kontrollib, kas mudel sobitub *halvasti*. Hea on seega kõrge p-väärtus, mis näitab, et mudel sobitub hästi.
+```{r}
+hoslem.test(osalus_mudel$y, fitted(osalus_mudel), g=10)
+```
+
+
 ### Klassifikatsioonitabel
 ```{r}
 logit_preds = ifelse(predict(osalus_mudel,type="response")>.5,"Hääletas","Ei hääletanud")
@@ -1850,16 +1879,24 @@ confusionMatrix(logit_preds,RK_2015$vote)
 
 ```{r}
 ROC_curve = function(probs,response,cut=.5){
+  y_values = unique(response)
   cutoffs = sort(unique(as.numeric(probs)))
-  tpr = sapply(cutoffs, function(cut) sum((probs >= cut) == T & response == "Hääletas")/(sum(response == "Hääletas")))
-  fpr = sapply(cutoffs, function(cut) sum((probs >= cut) == T & response == "Ei hääletanud")/(sum(response == "Ei hääletanud")))
+  tpr = sapply(cutoffs, function(cuts) sum((probs >= cuts) == T & response == y_values[1])/(sum(response == y_values[1])))
+  fpr = sapply(cutoffs, function(cuts) sum((probs >= cuts) == T & response == y_values[2])/(sum(response == y_values[2])))
   stats = data.frame(cutoffs, tpr, fpr)
   
+  r = rep(y_values[2],length(response))
+  r[probs>cut] = y_values[1]
+  cm = confusionMatrix(r,response)
+  auc = cm$byClass["Balanced Accuracy"]
+  
   stats %>%
-    ggplot() + 
-    geom_line(aes(x = fpr, y = tpr)) + 
-    scale_x_continuous(breaks=seq(0,1,.1)) +
-    scale_y_continuous(breaks=seq(0,1,.1)) +
+    ggplot() +
+    geom_line(aes(fpr,tpr)) +
+    geom_ribbon(aes(x=fpr,ymax=tpr,ymin=fpr),alpha=.5,fill="steelblue") +
+    geom_label(aes(.5,.5,label=paste("AUC:",round(auc,3))))+
+    scale_x_continuous(breaks = seq(0,1,.1)) +
+    scale_y_continuous(breaks = seq(0,1,.1)) +
     coord_fixed() +
     theme_bw()
 }
