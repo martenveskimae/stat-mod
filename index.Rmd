@@ -101,6 +101,7 @@ Visualiseerimine:
 Lineaarne regressioon: 
 
 - <a href="http://www.jakeruss.com/cheatsheets/stargazer/">Stargazer cheatsheet</a>
+- <a href="http://www.damienfrancois.be/blog/files/modelperfcheatsheet.pdf">Model performance cheatsheet</a>
 
 Logistiline regressioon:
 
@@ -1697,11 +1698,42 @@ Transformeerimata tunnustega mudelis sellist probleemi ei esinenud ning ilmselt 
 ```{r}
 library(tidyverse)
 library(stargazer)
-library(ResourceSelection)
 library(caret)
+library(mltools)
+library(ResourceSelection)
+library(ROCR)
 ```
 
 ### Andmestik
+```{r, include=F, echo=F}
+# RK_2015 = RK_2015 %>%
+#   mutate(vote = recode(vote, "Hääletas" = "voted", .default = "abstained"),
+#          gender = recode(gender, "Naine" = "female", .default = "male"),
+#          education = recode(education,
+#                             "Kõrgharidus" = "higher",
+#                             "Keskharidus" = "secondary",
+#                             "Põhiharidus" = "primary"),
+#          ethnicity = recode(ethnicity, "Eestlane" = "estonian", .default="other"),
+#          wage = recode(wage,
+#                        "Alla 200 €" = "<200 eur",
+#                        "200–275 €" = "200–275 eur",
+#                        "276–350 €" = "276–350 eur",
+#                        "351–425 €" = "351–425 eur",
+#                        "426–500 €" = "426–500 eur",
+#                        "501–575 €" = "501–575 eur",
+#                        "576–700 €" = "576–700 eur",
+#                        "701–1000 €" = "701–1000 eur",
+#                        "1001–1300 €" = "1001–1300 eur",
+#                        "1301–1600 €" = "1301–1600 eur",
+#                        "1601–1900 €" = "1601–1900 eur",
+#                        "1901–2200 €" = "1901–2200 eur",
+#                        "2201–2500 €" = "2201–2500 eur",
+#                        "Üle 2500 €" = ">2500 eur"))
+# 
+# write.csv(RK_2015[-1], "RK_2015.csv", row.names=F)
+# RK_2015 = read.csv("RK_2015.csv")
+```
+
 
 ```{r}
 RK_2015 = read.csv("https://martenveskimae.github.io/stat-mod/RK_2015.csv")
@@ -1767,12 +1799,14 @@ Valimisosalust mõõdetakse indiviiditasandil enamasti binaarsel kujul - kas vas
 Valimisosaluse analüüsiks võtame ette 2015. aasta Riigikogu valimiste küsitluse ning püüame ennustada inimeste valimisosalust sotsiaal-demograafiliste tunnuste abil. Järjestame esmalt ordinaalsed tunnused ja tutvume andmestikuga.
 
 ```{r}
-palgad = c("Alla 200 €","200–275 €","276–350 €","351–425 €","426–500 €","501–575 €",
-           "576–700 €","701–1000 €","1001–1300 €","1301–1600 €","1601–1900 €",
-           "1901–2200 €","2201–2500 €","Üle 2500 €")
-haridus = c("Põhiharidus","Keskharidus","Kõrgharidus")
-RK_2015$wage = factor(RK_2015$wage,levels=palgad)
-RK_2015$education = factor(RK_2015$education,levels=haridus)
+voted = c("abstained","voted")
+wages = c("<200 eur","200–275 eur","276–350 eur","351–425 eur","426–500 eur","501–575 eur",
+           "576–700 eur","701–1000 eur","1001–1300 eur","1301–1600 eur","1601–1900 eur",
+           "1901–2200 eur","2201–2500 eur",">2500 eur")
+edu = c("primary","secondary","higher")
+RK_2015$vote = factor(RK_2015$vote,levels=voted)
+RK_2015$wage = factor(RK_2015$wage,levels=wages)
+RK_2015$education = factor(RK_2015$education,levels=edu)
 
 summary(RK_2015)
 ```
@@ -1824,16 +1858,27 @@ stargazer(osalus_mudel,osalus_mudel,osalus_mudel,
           type="html")
 ```
 
-Arvutame viimaks McFaddeni pseudo R-ruudu suuruse. Arvestada tuleks, et erinevalt lineaarse regressiooni R-ruudust, on antud pseudo R-ruudu suurus alati madalam (0.2-0.4 on juba hea tulemus).
+
+## Mudeli hindamine
+
+Mudeli hindamise võib jaotada laias laastus kaheks: (1) mudeli ennustusvõime ja (2) mudeli sobivus. Esimene neist hindab, kui hästi suudab mudel X-ide abil Y väärtuseid hinnata ning teine, kas mudelit oleks võimalik täiustada (näiteks muutes mudeli spesifikatsiooni või funktsionaalset vormi). Mudeli ennustusvõimega seotud indikaatorid on (enamasti 0-1 vahel) meetrikud ning sobivusega seotud indikaatorid statistilised testid p-väärtustega.
+
+## Mudeli ennustusvõime
+
+### Pseudo R-ruut
+
+Kui lineaarse regressiooni puhul sai arvutada R-ruudu, mis näitas X-ide ja Y kovarieeruvust, siis logistilise regressiooni puhul seda otseselt teha ei saa. Küll aga on olemas pseudo R-ruudud. Pseudo R-ruudu leidmiseks on tosinkond erinevat viisi, mis annavad mõnevõrra erinevaid tulemusi. Praegu arvutame McFaddeni pseudo R-ruudu, mis on üks levinumaid pseudo R-ruudu meetodeid. Arvestada tuleks, et erinevalt lineaarse regressiooni R-ruudust, on pseudo R-ruudu suurus reeglina madalam (0.2-0.4 on juba hea tulemus). McFaddeni pseudo R-ruudu valem on:
 
 $R^2=1-\frac{logLik_{mod}}{logLik_{null}}$
+
+ehk see näitab spetsifitseeritud mudeli ja null mudeli logaritmitud tõepärade suhet.
 
 ```{r}
 1 - osalus_mudel$deviance / osalus_mudel$null.deviance
 ```
 
 <div class="tip">
-Meenutame, et andmestikus on hääletanuid oluliselt rohkem kui mittehääletanuid. Mudelit saaks seega oluliselt parandada tasakaalustatud andmestikuga. Kasutame selleks paketti **ROSE** ja funktsiooni `ovun.sample(...)`.
+Meenutame, et andmestikus on hääletanuid oluliselt rohkem kui mittehääletanuid. Mudelit saaks seega parandada tasakaalustatud andmestikuga. Kasutame selleks paketti **ROSE** ja funktsiooni `ovun.sample(...)`.
 
 ```{r}
 library(ROSE)
@@ -1853,47 +1898,68 @@ osalus_both = glm(f, data=both, family=binomial)
 Hea. Pseudo R-ruut tõusis tasakaalustatud andmetega mõne protsendi võrra.
 </div>
 
-## Mudeli hindamine
+### Klassifikatsiooni tabel
 
-### Mudeli olulisus
+Klassifikatsiooni tabel (vahel ka *confusion matrix*) on olemuselt risttabel, kus ühel teljel on tegelike väärtuste sagedused ning teisel teljel ennustatud väärtused. Klassifikatsiooni tabelist on võimalik arvutada mitmeid kasulikke meetrikuid mudeli hindamiseks, millest tavapärasemad on *accuracy*, *precision*, *true positive rate* (TPR; vahel *sensitivity* või *recall*), *false positive rate* (FPR), *true negative rate* (TNR; vahel *specificity*) ja *F-measure*.
 
-- $\chi^2$ test
+Klassifikatsiooni tabeli formaat on järgnev (telgede järjestust võib muuta):
 
-$\chi^2$ test kontrollib, kas testidu mudel on oluliselt parem tühjast mudelist.
+Tegelik/Ennustatud  | Positiivne (1)     | Negatiivne (0)     | Kokku
+--------------------|--------------------|--------------------|-----------------
+Positiivne (1)      | True Positive (TP) | False negative (FN)| TP + FN
+Negatiivne (0)      | False Positive (FP)| True negative (TN) | FP + TN
+Kokku               | TP + FP            | FN + TN            | N
 
-- Hosmer \& Lemeshow test
+- $accuracy = \frac{TP+TN}{TOTAL}$
+- $precision = \frac{TP}{TP+FP}$
+- $TPR = \frac{TP}{TP+FN}$
+- $FPR = \frac{FP}{FP+TN}$
+- $TNR = \frac{TN}{FP+TN}$
+- $F-measure = \frac{2}{\frac{1}{Precision}+\frac{1}{TPR}}$
 
-H\&L test kontrollib, kas mudel sobitub *halvasti*. Hea on seega kõrge p-väärtus, mis näitab, et mudel sobitub hästi.
+Antud väärtusi saab tõlgendada järgnevalt:
+
+- accuracy: mudel suutis õigesti klassifitseerida ...\% vaatlustest
+- precision: kõikidest positiivsetest hinnangutest olid õiged ...\% vaatlusi
+- TPR: kõikidest tõelistest positiivsetest vaatlustest suutis mudel õigesti klassifitseerida ...\% vaatlusi
+- FPR: tõenäosus lükata vääralt kõrvale null hüpotees (sarnane tüüp I vea mõistele)
+- TNR: kõikidest tõelistest negatiivsetest vaatlustest suutis mudel õigesti klassifitseerida ...\% vaatlusi
+- F-measure võtab arvesse nii *precisionit* kui *TPRi*, karistades mudeleid, mis annavad kallutatud tulemusi
+
+Antud meetrikute harjutamiseks võib need käsitsi kalkuleerida valimisosaluse mudeli põhjal.
+
+Reference/Prediction  | Voted (1)     | Abstained (0)     | Total
+----------------------|---------------|-------------------|-----------------
+Voted (1)             | 639           | 7                 | 646
+Abstained (0)         | 141           | 9                 | 150
+Total                 | 780           | 16                | 796
+
+Klassifikatsiooni tabeli ning mitmeid meetrikuid saab funktsiooniga `confusionMatrix(...)` paketist **caret**. Funktsiooni läheb sisendiks mudeli ennustatud väärtused ning tõelised väärtused. Mudeli ennustatud väärtuste saamiseks tuleks valida sobiv lõikepunkt tõenäosuste jaotuses ning klassifitseerida vaatlused.
+
 ```{r}
-hoslem.test(osalus_mudel$y, fitted(osalus_mudel), g=10)
-```
+logit_preds = ifelse(fitted(osalus_mudel)>.5,"voted","abstained")
 
-
-### Klassifikatsioonitabel
-```{r}
-logit_preds = ifelse(predict(osalus_mudel,type="response")>.5,"Hääletas","Ei hääletanud")
 confusionMatrix(logit_preds,RK_2015$vote)
 ```
 
 ### ROC-kõver
 
+ROC-kõver näitab TPR-i ja FPR-i suhet erinevate tõenäosuste lõikepunktide vahel. Lisaks võimaldab ROC-kõver visuaalselt hinnata mudeli accuracy-t.
+
 ```{r}
-ROC_curve = function(probs,response,cut=.5){
+ROC_curve = function(probs,response){
   y_values = unique(response)
   cutoffs = sort(unique(as.numeric(probs)))
   tpr = sapply(cutoffs, function(cuts) sum((probs >= cuts) == T & response == y_values[1])/(sum(response == y_values[1])))
   fpr = sapply(cutoffs, function(cuts) sum((probs >= cuts) == T & response == y_values[2])/(sum(response == y_values[2])))
   stats = data.frame(cutoffs, tpr, fpr)
-  
-  r = rep(y_values[2],length(response))
-  r[probs>cut] = y_values[1]
-  cm = confusionMatrix(r,response)
-  auc = cm$byClass["Balanced Accuracy"]
+
+  auc = auc_roc(probs, ordered(response))
   
   stats %>%
     ggplot() +
     geom_line(aes(fpr,tpr)) +
-    geom_ribbon(aes(x=fpr,ymax=tpr,ymin=fpr),alpha=.5,fill="steelblue") +
+    geom_ribbon(aes(x=fpr,ymax=tpr,ymin=0),alpha=.5,fill="steelblue") +
     geom_label(aes(.5,.5,label=paste("AUC:",round(auc,3))))+
     scale_x_continuous(breaks = seq(0,1,.1)) +
     scale_y_continuous(breaks = seq(0,1,.1)) +
@@ -1901,6 +1967,37 @@ ROC_curve = function(probs,response,cut=.5){
     theme_bw()
 }
 
-ROC_curve(predict(osalus_mudel,type="response"), RK_2015$vote)
+ROC_curve(fitted(osalus_mudel), RK_2015$vote)
+```
+Kiire ROC-kõvera saab joonistada paketiga **ROCR**. Selleks on vaja mudelist saadud tõenäosused ja tõelised väärtused siduda kokku `prediction(...)` objektiks, teisendada see `performance(...)` objektiks ning seejärel `plot(...)` funktsiooniga tulemus visualiseerida.
+
+```{r}
+pred = prediction(fitted(osalus_mudel), RK_2015$vote)
+roc_perf = performance(pred, measure = "tpr", x.measure = "fpr")
+plot(roc_perf, asp=1)
 ```
 
+## Mudeli sobivus
+
+Üks levinumaid sobivusteste on Hosmeri ja Lemeshow test. HL test jaotab mudelist saadud vaatluste tõenäosused esmalt kvantiilidesse ning hindab seejärel, kas kvantiilide `y=1` proportsioonid vastavad tegelikele proportsioonidele. $H_0$ on antud testi puhul sarnased proportsioonid, ehk hea mudeli korral on testi tulemus kõrge p-väärtusega (näitab, et mudel sobitub andmetega hästi). HL testi saab paketist **ResourceSelection** funktsiooni abil `hoslem.test(...)`, kuhu lähevad argumentideks `x = õiged väärtused (0 või 1)` ja `y = mudelist saadud tõenäosused`.
+
+```{r}
+hoslem.test(x=osalus_mudel$y, y=fitted(osalus_mudel))
+```
+
+# Veel teemasid
+
+Veel statistilise modelleerimise teemasid, mida sissejuhatavas kursuses ei kaetud:
+
+- Mudelite treenimine, valideerimine ja testimine
+- Mudeli robustsus
+- Instrumenttunnused ja instrumentmudelid
+- Mitte-representatiivsed andmed
+- Loendusandmete analüüs
+- Aegridade analüüs
+- Paneelandmete analüüs
+- Võrgustike analüüs
+- Ruumiökonomeetria
+- Protsesside analüüs
+- Klasterdamine
+- Dimensioonide vähendamine
