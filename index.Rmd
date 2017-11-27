@@ -1708,6 +1708,9 @@ library(ROCR)
 
 ### Andmestik
 ```{r, include=F, echo=F}
+# RK_2015$wage = recode(RK_2015$wage,
+#                       "<200 eur" = "under 200 eur",
+#                       ">2500 eur" = "over 2500 eur")
 # RK_2015 = RK_2015 %>%
 #   mutate(vote = recode(vote, "Hääletas" = "voted", .default = "abstained"),
 #          gender = recode(gender, "Naine" = "female", .default = "male"),
@@ -1732,7 +1735,7 @@ library(ROCR)
 #                        "2201–2500 €" = "2201–2500 eur",
 #                        "Üle 2500 €" = ">2500 eur"))
 # 
-# write.csv(RK_2015[-1], "RK_2015.csv", row.names=F)
+# write.csv(RK_2015, "RK_2015.csv", row.names=F)
 # RK_2015 = read.csv("RK_2015.csv")
 ```
 
@@ -1802,9 +1805,9 @@ Valimisosaluse analüüsiks võtame ette 2015. aasta Riigikogu valimiste küsitl
 
 ```{r}
 voted = c("abstained","voted")
-wages = c("<200 eur","200–275 eur","276–350 eur","351–425 eur","426–500 eur","501–575 eur",
+wages = c("under 200 eur","200–275 eur","276–350 eur","351–425 eur","426–500 eur","501–575 eur",
            "576–700 eur","701–1000 eur","1001–1300 eur","1301–1600 eur","1601–1900 eur",
-           "1901–2200 eur","2201–2500 eur",">2500 eur")
+           "1901–2200 eur","2201–2500 eur","over 2500 eur")
 edu = c("primary","secondary","higher")
 
 RK_2015 = RK_2015 %>%
@@ -1938,7 +1941,7 @@ Positiivne (1)      | True Positive (TP) | False negative (FN)| TP + FN
 Negatiivne (0)      | False Positive (FP)| True negative (TN) | FP + TN
 Kokku               | TP + FP            | FN + TN            | N
 
-- $accuracy = \frac{TP+TN}{TOTAL}$
+- $accuracy = \frac{TP+TN}{N}$
 - $precision = \frac{TP}{TP+FP}$
 - $TPR = \frac{TP}{TP+FN}$
 - $FPR = \frac{FP}{FP+TN}$
@@ -1967,7 +1970,7 @@ Klassifikatsiooni tabeli ning mitmeid meetrikuid saab funktsiooniga `confusionMa
 ```{r}
 logit_preds = ifelse(fitted(osalus_mudel)>.5,"voted","abstained")
 
-confusionMatrix(logit_preds,RK_2015$vote)
+confusionMatrix(logit_preds, RK_2015$vote)
 ```
 
 ### ROC-kõver
