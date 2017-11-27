@@ -106,6 +106,7 @@ Lineaarne regressioon:
 Logistiline regressioon:
 
 - <a href="https://en.wikipedia.org/wiki/Exponential_family">Eksponentide perekond</a>
+- <a href="https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html">An Introduction to ‘margins’</a>
 - <a href="https://cran.r-project.org/web/packages/interplot/vignettes/interplot-vignette.html">interplot: Plot the Effects of Variables in Interaction Terms</a>
 - <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>
 
@@ -1697,6 +1698,7 @@ Transformeerimata tunnustega mudelis sellist probleemi ei esinenud ning ilmselt 
 
 ```{r}
 library(tidyverse)
+library(margins)
 library(stargazer)
 library(caret)
 library(mltools)
@@ -1804,9 +1806,12 @@ wages = c("<200 eur","200–275 eur","276–350 eur","351–425 eur","426–500 
            "576–700 eur","701–1000 eur","1001–1300 eur","1301–1600 eur","1601–1900 eur",
            "1901–2200 eur","2201–2500 eur",">2500 eur")
 edu = c("primary","secondary","higher")
-RK_2015$vote = factor(RK_2015$vote,levels=voted)
-RK_2015$wage = factor(RK_2015$wage,levels=wages)
-RK_2015$education = factor(RK_2015$education,levels=edu)
+
+RK_2015 = RK_2015 %>%
+  mutate(vote = factor(vote, levels=voted),
+         wage = factor(wage, levels=wages),
+         wage_numeric = as.numeric(wage),
+         education = factor(education, levels=edu))
 
 summary(RK_2015)
 ```
@@ -1814,34 +1819,54 @@ summary(RK_2015)
 Sõltuvtunnus on antud hetkel `vote`, mille puhul näeme, et 646 küsitletutest hääletas ja 150 ei hääletanud. Viime läbi logistilise regressiooni kõikide andmestikus kaasatud tunnustega. Logistilise regressiooni jaoks kasutame funktsiooni `glm(...)`, kus tuleb lisaks valemile ja andmestikule märkida ennustusjääkide perekond `family=binominal`.
 
 ```{r}
-f = formula(vote ~ age + I(age^2) + gender + education + ethnicity + as.numeric(wage))
+f = formula(vote ~ age + I(age^2) + gender + education + ethnicity + wage_numeric)
 osalus_mudel = glm(f, data= RK_2015, family=binomial)
 summary(osalus_mudel)
 ```
 
-<div class="tip">
-
-Kuidas visualiseerida interaktsioonide marginaalefektie (ehk *tingimuslik tõenäosus*)? Sellist võimalust pakub funktsioon `interplot(...)` paketist **interplot**.
-
-```{r}
-library(interplot)
-interplot(osalus_mudel, var1 = "age", var2 = "age") +
-  theme_bw()
-```
-
-Rohkem võimalusi **interploti** kohta leiab siit: <a href="https://cran.r-project.org/web/packages/interplot/vignettes/interplot-vignette.html">interplot: Plot the Effects of Variables in Interaction Terms</a>
-</div>
 Et saada kätte lihtsamini tõlgendatavad šansside suhted, tuleb $\beta$ väärtused eksponentida. $\beta$ väärtused saame funktsiooniga `coef()` ning eksponendid `exp(...)`.
 
 ```{r}
 (or = exp(coef(osalus_mudel)))
 ```
 
-Šansside suhet ei saa siiski lineaarselt tõlgendada, sest konkreetne šansi suurus sõltub X väärtustest. Üks viis, kuidas kõikide X peale keskmist mõju suurust väljendada, on leida keskmine marginaalefekt. Selleks tuleb leida esmalt keskmine logaritm-suhte tihedus ning korrutada see koefitsientide suurustega. Kui see tundub praegu keeruline, siis antud hetkel ei olegi tarvis seda mõista. Huvi korral võib alustada tõenäosuse ja logaritm-suhte uurimist siit: <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>.
+Šansside suhet ei saa siiski lineaarselt tõlgendada, sest konkreetne šansi suurus sõltub X väärtustest. Üks viis, kuidas kõikide X peale keskmist mõju suurust väljendada, on leida keskmine marginaalefekt (*average marginal effect*, AME). AMEde leidmiseks on kõige mugavam kasutada funktsiooni `margins(...)` paketist **margins**. Margins arvutab vaikimisi mõju tõenäosusele. Kui soovida algseid *link* väärtuseid, tuleb määrata `type="link"`.
+
+```{r}
+m = margins(osalus_mudel)
+summary(m)
+```
+
+Kui mudelis on interaktsioonid (antud juhul on mudelis vanuse interaktsioon iseendaga), siis interaktsioonide efektid integreeritakse kokku. Et näha, kas interaktsioonil oli oluline mõju, võib arvutada marginaalefektid kindlatel vanuse väärtustel. Leiame vanuse marginaalefektid vanuse 20 aastase sammuga `at = list(age = seq(20,90,20))`.
+
+```{r}
+margins(osalus_mudel, at = list(age = seq(20,90,20)))
+```
+
+`cplot(...)` samast paketist võimaldab graafida erinevaid tunnuseid, sh interaktsioone.
+```{r}
+cplot(osalus_mudel, "age")
+```
+
+**Margins** paketi võimaluste kohta saab rohkem infot siit: <a href="https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html">An Introduction to ‘margins’</a>
+
+<div class="tip">
+
+AMEde käsitsi arvutamiseks tuleb leida esmalt keskmine link väärtuste tihedus ning korrutada see koefitsientide suurustega. Kui see tundub praegu keeruline, siis antud hetkel polegi tarvis seda mõista. Huvi korral võib alustada tõenäosuse ja link uurimist siit: <a href="http://thomasleeper.com/Rcourse/Tutorials/binaryglmplots.html">Binary Outcome GLM Plots</a>.
 
 ```{r}
 (ame = mean(dlogis(predict(osalus_mudel, type="link"))) * coef(osalus_mudel))
 ```
+
+Link väärtuste tihedus näeb välja järgnev:
+
+```{r}
+plot(predict(osalus_mudel, type="link"), dlogis(predict(osalus_mudel, type="link")))
+```
+
+
+
+</div>
 
 Kui šansside suhet võis mõista "kui palju kasvab sündmuse šanss ($\frac{y=1}{y=0}$) X-i kasvades ühe võrra" (mitte segi ajada riskisuhtega ($\frac{y=1}{y}$)!), siis keskmine marginaalefekt tähistab regressiooni joone keskmist kallakut.
 
@@ -1855,6 +1880,9 @@ stargazer(osalus_mudel,osalus_mudel,osalus_mudel,
                             "Keskmine marginaalefekt"),
           dep.var.caption = "",
           coef = list(NULL, or, ame),
+          se = list(NA,NA,NA),
+          p = list(NA,NA,NA),
+          no.space= T,
           type="html")
 ```
 
@@ -2001,3 +2029,4 @@ Veel statistilise modelleerimise teemasid, mida sissejuhatavas kursuses ei kaetu
 - Protsesside analüüs
 - Klasterdamine
 - Dimensioonide vähendamine
+- Suurandmete analüüs
