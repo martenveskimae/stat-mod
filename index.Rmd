@@ -1708,6 +1708,7 @@ library(ROCR)
 
 ### Andmestik
 ```{r, include=F, echo=F}
+# RK_2015 = read.csv("RK_2015.csv")
 # RK_2015$wage = recode(RK_2015$wage,
 #                       "<200 eur" = "under 200 eur",
 #                       ">2500 eur" = "over 2500 eur")
@@ -1736,9 +1737,7 @@ library(ROCR)
 #                        "Üle 2500 €" = ">2500 eur"))
 # 
 # write.csv(RK_2015, "RK_2015.csv", row.names=F)
-# RK_2015 = read.csv("RK_2015.csv")
 ```
-
 
 ```{r}
 RK_2015 = read.csv("https://martenveskimae.github.io/stat-mod/RK_2015.csv")
@@ -1804,17 +1803,9 @@ Valimisosalust mõõdetakse indiviiditasandil enamasti binaarsel kujul - kas vas
 Valimisosaluse analüüsiks võtame ette 2015. aasta Riigikogu valimiste küsitluse ning püüame ennustada inimeste valimisosalust sotsiaal-demograafiliste tunnuste abil. Järjestame esmalt ordinaalsed tunnused ja tutvume andmestikuga.
 
 ```{r}
-voted = c("abstained","voted")
-wages = c("under 200 eur","200–275 eur","276–350 eur","351–425 eur","426–500 eur","501–575 eur",
-           "576–700 eur","701–1000 eur","1001–1300 eur","1301–1600 eur","1601–1900 eur",
-           "1901–2200 eur","2201–2500 eur","over 2500 eur")
-edu = c("primary","secondary","higher")
-
 RK_2015 = RK_2015 %>%
-  mutate(vote = factor(vote, levels=voted),
-         wage = factor(wage, levels=wages),
-         wage_numeric = as.numeric(wage),
-         education = factor(education, levels=edu))
+  mutate(vote = factor(vote, levels= c("abstained","voted")),
+         education = factor(education, levels= c("primary","secondary","higher")))
 
 summary(RK_2015)
 ```
@@ -1866,8 +1857,6 @@ Link väärtuste tihedus näeb välja järgnev:
 ```{r}
 plot(predict(osalus_mudel, type="link"), dlogis(predict(osalus_mudel, type="link")))
 ```
-
-
 
 </div>
 
