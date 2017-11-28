@@ -1,0 +1,234 @@
+---
+title: "Ordered logit / Multinomial logit"
+author: "Märten Veskimäe"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    code_folding: show
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T,
+                      warning = F,
+                      message = F,
+                      comment = NA,
+                      fig.align="center")
+options(width = 120)
+
+Sys.setlocale("LC_ALL", "UTF-8")
+```
+
+```{r}
+library(readstata13)
+library(tidyverse)
+library(stargazer)
+
+set.seed(3633)
+piaac = read.dta13("piaac.dta")
+piaac = piaac[sample(c(1:nrow(piaac)), 40000),] %>%
+  filter(employed==1) %>%
+  select(-pared, -country, -emplnum, -goodhealth, -wage, -variety, -employed)
+```
+
+# Multinomial logit model and ordered logit
+```{r}
+df = piaac %>% select(ageg5lfs, male, edcat7, immig, relwage, geo, jobsat, health) %>% na.omit()
+colnames(df) = c("age", "male", "edu", "immig", "relwage", "geo", "jobsat", "health")
+df = df %>%
+  mutate(relwage.pow2 = relwage * relwage,
+         edu = droplevels(edu),
+         health = droplevels(health),
+         age = droplevels(age),
+         jobsat = droplevels(jobsat),
+         geo = droplevels(geo))
+```
+
+## Tabulate the variable jobsat. If the two lowest categories ("Extremely dissatisfied", "Dissatisfied") consist less than 10 percent of the observations, merge these two.
+
+```{r}
+df %>%
+  group_by(jobsat) %>%
+  summarise (n = n()) %>%
+  mutate(percent = n / sum(n))
+
+levels(df$jobsat) = c("Dissatisfied", "Dissatisfied", "Extremely satisfied", "Neither satisfied nor dissatisfied", "Satisfied")
+
+df$jobsat = droplevels(df$jobsat)
+
+df %>%
+  group_by(jobsat) %>%
+  summarise (n = n()) %>%
+  mutate(percent = n / sum(n))
+```
+
+## Estimate an ordered logit model, where job satisfaction depends on individual characteristics such as age, health, gender, education, immigrant status, country indicators, relative wage and its square (e.g. using both linear and squared terms).
+
+```{r}
+library(MASS)
+ologit.model = polr(jobsat~., data=df, Hess=TRUE)
+
+ctable = coef(summary(ologit.model))
+p = round((pnorm(abs(ctable[, "t value"]), lower.tail = FALSE) * 2),3)
+```
+
+### Calculate marginal effects with respect to all variables
+```{r}
+library(erer)
+ologit.model.me = ocME(ologit.model)
+```
+
+### Interpret the effects of age and immigrant status on job satisfaction quantitatively.
+```{r, results="asis"}
+stargazer(ologit.model, ologit.model,ologit.model,ologit.model,ologit.model,
+          column.labels = c("Ordered logit",
+                            "Dissatisfied",
+                            "Neither satisfied nor dissatisfied",
+                            "Satisfied",
+                            "Extremely satisfied"),
+          coef=list(coef(ologit.model),
+                ologit.model.me$out$ME.Dissatisfied[,1],
+                ologit.model.me$out$`ME.Neither satisfied nor dissatisfied`[,1],
+                ologit.model.me$out$ME.Satisfied[,1],
+                ologit.model.me$out$`ME.Extremely satisfied`[,1]),
+          se=list(summary(ologit.model)$coefficients[,2],
+                ologit.model.me$out$ME.Dissatisfied[,2],
+                ologit.model.me$out$`ME.Neither satisfied nor dissatisfied`[,2],
+                ologit.model.me$out$ME.Satisfied[,2],
+                ologit.model.me$out$`ME.Extremely satisfied`[,2]),
+          p=list(p,
+                ologit.model.me$out$ME.Dissatisfied[,4],
+                ologit.model.me$out$`ME.Neither satisfied nor dissatisfied`[,4],
+                ologit.model.me$out$ME.Satisfied[,4],
+                ologit.model.me$out$`ME.Extremely satisfied`[,4]),
+          ci = T,
+          omit = c("geo"),
+          type="html")
+```
+
+</br>
+
+The results are mixed: marginal effects for age indicate that people from 20 to 24 years of age are polarized between either being dissatisfied or extremely satisfied (positive coefficients) when compared to the reference category. People in that age group have a tendency not to be just satisfied (negative coefficient). The relationship with job satisfaction remains the same as age increases up to 34, with the difference of more people becoming neutral (neither satisfied nor dissatisfied). Age group 60 to 65 are, however most likely just satisfied with all the other options having negative and statistically significant effects.
+
+Immigrants, just as the age group 20-24, are polarized between being either dissatisfied or extremely satisfied (positive coefficients), but not just satisfied (negative coefficient).
+
+## Estimate a multinomial model with the same set of explanatory variables
+```{r}
+library(nnet)
+mlogit.model2 = multinom(jobsat~., data = df, Hess=TRUE, maxit = 200)
+```
+
+### Calculate marginal effects
+```{r}
+library(mlogit)
+tmp = model.matrix(jobsat~., data=df)[,-1]
+tmp = as.data.frame(tmp)
+tmp = cbind(tmp, jobsat=df[,7])
+df.mlogit = mlogit.data(tmp, varying = NULL, shape = "wide", choice = "jobsat", row.names=FALSE)
+
+oldnames = colnames(df.mlogit)[c(-39,-40,-41)]
+colnames(df.mlogit)[c(-39,-40,-41)] = paste0("var",c(1:38))
+f = as.formula(paste("jobsat ~ 0 | ", paste(colnames(df.mlogit)[c(-39,-40,-41)], collapse= "+")))
+
+mlogit.model = mlogit(f, data=df.mlogit)
+
+z = rbind(colMeans(df.mlogit[df.mlogit$alt=="Dissatisfied",c(-39,-40,-41)], na.rm=TRUE),
+          colMeans(df.mlogit[df.mlogit$alt=="Neither satisfied nor dissatisfied",c(-39,-40,-41)], na.rm=TRUE),
+          colMeans(df.mlogit[df.mlogit$alt=="Satisfied",c(-39,-40,-41)], na.rm=TRUE),
+          colMeans(df.mlogit[df.mlogit$alt=="Extremely satisfied",c(-39,-40,-41)], na.rm=TRUE)) %>%
+  as.data.frame()
+
+rownames(z) = c("Dissatisfied",
+                 "Neither satisfied nor dissatisfied",
+                 "Satisfied",
+                 "Extremely satisfied")
+
+m.effects = function (object, covariate = NULL, type = c("aa", "ar", "rr", 
+    "ra"), data = NULL, ...) 
+{
+    type = match.arg(type)
+    if (is.null(data)) {
+        P = predict(object, returnData = TRUE)
+        data = attr(P, "data")
+        attr(P, "data") = NULL
+    }
+    else P = predict(object, data)
+    newdata = data
+    J = length(P)
+    alt.levels = names(P)
+    pVar = substr(type, 1, 1)
+    xVar = substr(type, 2, 2)
+    cov.list = strsplit(as.character(attr(formula(object), "rhs")), " + ", fixed = TRUE)
+    rhs = sapply(cov.list, function(x) length(na.omit(match(x, 
+        covariate))) > 0)
+    rhs = (1:length(cov.list))[rhs]
+    eps = 1e-05
+    if (rhs %in% c(1, 3)) {
+        if (rhs == 3) {
+            theCoef = paste(alt.levels, covariate, sep = ":")
+            theCoef = coef(object)[theCoef]
+        }
+        else theCoef = coef(object)[covariate]
+        me = c()
+        for (l in 1:J) {
+            newdata[l, covariate] = data[l, covariate] + eps
+            newP = predict(object, newdata)
+            me = rbind(me, (newP - P)/eps)
+            newdata = data
+        }
+        if (pVar == "r") 
+            me = t(t(me)/P)
+        if (xVar == "r") 
+            me = me * matrix(rep(data[[covariate]], J), J)
+        dimnames(me) = list(alt.levels, alt.levels)
+    }
+    if (rhs == 2) {
+        newdata[, covariate] <- data[, covariate] + eps
+        newP = predict(object, newdata)
+        me = (newP - P)/eps
+        if (pVar == "r") 
+            me = me/P
+        if (xVar == "r") 
+            me = me * data[[covariate]]
+        names(me) = alt.levels
+    }
+    me
+}
+
+m.es = c()
+for(i in 1:38){
+  m.es = rbind(m.es, m.effects(mlogit.model, covariate = c(paste0("var", i)) , data = z))
+}
+rownames(m.es) = oldnames
+```
+
+### Interpret the marginal effects with respect to age and immigrant status. Is the interpretation similar or not in the more flexible model?
+
+```{r}
+colnames(m.es)[3] = "Neutral"
+round(m.es[c(1:17,34:38),c(1,3,4,2)],3)
+```
+
+There are minor differences with ordered logit model, but the conclusion seems to be the same: satisfaction is polarized when it comes to age and immigrant status differences.
+
+### Test if assumptions behind ordered logit model are satisfied
+```{r}
+library(ordinal)
+ologit.model2 = clm(jobsat~., data = df)
+nominal_test(ologit.model2)
+```
+
+### Test if assumptions behind mlogit are satisfied
+
+```{r}
+mlogit.model2_a = mlogit(f, data=df.mlogit,reflevel = "Dissatisfied")
+mlogit.model2_b = mlogit(f, data=df.mlogit,reflevel = "Dissatisfied",
+                         alt.subset=c("Dissatisfied", "Extremely satisfied"))
+
+hmftest(mlogit.model2_a, mlogit.model2_b)
+```
+
+Hausman-McFadden test shows, if alternatives are truly independent (or does the presence of an alternative change the outcome). In this case, IIA assumption holds.
